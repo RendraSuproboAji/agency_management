@@ -27,10 +27,25 @@
     <label class="span-2">Catatan cuaca / kondisi
         <input type="text" name="weather_note" value="{{ old('weather_note', $session->weather_note) }}">
     </label>
-    <label class="span-2">Peralatan
-        <textarea name="equipment" rows="3">{{ old('equipment', $session->equipment) }}</textarea>
+    <label class="span-2">Catatan peralatan
+        <textarea name="equipment_note" rows="3">{{ old('equipment_note', $session->equipment_note) }}</textarea>
     </label>
     <label class="span-2">Catatan
         <textarea name="notes" rows="4">{{ old('notes', $session->notes) }}</textarea>
     </label>
 </div>
+
+<h3>Peralatan dari inventaris</h3>
+@php $chosen = collect(old('equipment', $session->exists ? $session->equipment->pluck('id')->all() : [])); @endphp
+@if ($equipment->isEmpty())
+    <p class="muted">Belum ada peralatan tersedia di inventaris.</p>
+@else
+    <div class="checkbox-grid">
+        @foreach ($equipment as $item)
+            <label class="inline">
+                <input type="checkbox" name="equipment[]" value="{{ $item->id }}" @checked($chosen->contains($item->id))>
+                {{ $item->name }} <span class="muted">{{ $item->code }} · {{ $item->category }}</span>
+            </label>
+        @endforeach
+    </div>
+@endif

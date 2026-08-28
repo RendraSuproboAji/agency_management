@@ -98,7 +98,7 @@ class DatabaseSeeder extends Seeder
                 'crew_id' => $staff->id,
                 'scheduled_at' => now()->addDays(random_int(1, 14))->setTime(9, 0),
                 'location' => $project->site_location,
-                'equipment' => 'Sony A7IV + lensa 16-35mm, tripod, color checker',
+                'equipment_note' => 'Sony A7IV + lensa 16-35mm, tripod, color checker',
                 'status' => 'scheduled',
             ]);
 

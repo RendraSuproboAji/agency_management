@@ -16,7 +16,7 @@
 </form>
 
 <table class="table">
-    <thead><tr><th>Jadwal</th><th>Project</th><th>Klien</th><th>Kru</th><th>Lokasi</th><th>Status</th></tr></thead>
+    <thead><tr><th>Jadwal</th><th>Project</th><th>Klien</th><th>Kru</th><th>Peralatan</th><th>Status</th></tr></thead>
     <tbody>
     @forelse ($sessions as $session)
         <tr>
@@ -24,7 +24,7 @@
             <td><a href="{{ route('projects.show', $session->project) }}">{{ $session->project->title }}</a></td>
             <td>{{ $session->project->client->name }}</td>
             <td>{{ $session->crew?->name ?: '—' }}</td>
-            <td>{{ $session->location ?: '—' }}</td>
+            <td>{{ $session->equipment->pluck('name')->join(', ') ?: '—' }}</td>
             <td>@include('partials.status-badge', ['status' => $session->status])</td>
         </tr>
     @empty

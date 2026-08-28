@@ -138,6 +138,11 @@ textarea { resize: vertical; }
 .inline-form { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; margin-top: 1rem; }
 .mini { width: 80px; }
 
+.checkbox-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: .4rem; margin-bottom: 1rem;
+}
+
 /* Buttons */
 .btn {
     display: inline-block; padding: .45rem .85rem; border-radius: var(--radius);

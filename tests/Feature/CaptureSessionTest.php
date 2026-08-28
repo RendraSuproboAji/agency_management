@@ -21,7 +21,7 @@ class CaptureSessionTest extends TestCase
             'crew_id' => $owner->id,
             'scheduled_at' => now()->addWeek()->format('Y-m-d H:i:s'),
             'location' => 'Kemang, Jakarta Selatan',
-            'equipment' => 'Sony A7IV, tripod',
+            'equipment_note' => 'Sony A7IV, tripod',
             'status' => 'scheduled',
         ])->assertRedirect(route('projects.show', $project));
 

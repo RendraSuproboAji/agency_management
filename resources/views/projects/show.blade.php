@@ -114,13 +114,14 @@
     </div>
 
     <table class="table">
-        <thead><tr><th>Jadwal</th><th>Kru</th><th>Lokasi</th><th>Jumlah shot</th><th>Status</th><th></th></tr></thead>
+        <thead><tr><th>Jadwal</th><th>Kru</th><th>Lokasi</th><th>Peralatan</th><th>Jumlah shot</th><th>Status</th><th></th></tr></thead>
         <tbody>
         @forelse ($project->captureSessions as $session)
             <tr>
                 <td>{{ $session->scheduled_at->format('d M Y H:i') }}</td>
                 <td>{{ $session->crew?->name ?: '—' }}</td>
                 <td>{{ $session->location ?: '—' }}</td>
+                <td>{{ $session->equipment->pluck('name')->join(', ') ?: '—' }}</td>
                 <td>{{ $session->shot_count ?? '—' }}</td>
                 <td>@include('partials.status-badge', ['status' => $session->status])</td>
                 <td class="row-actions">
@@ -141,7 +142,7 @@
                 </td>
             </tr>
         @empty
-            <tr><td colspan="6" class="muted">Belum ada sesi terjadwal.</td></tr>
+            <tr><td colspan="7" class="muted">Belum ada sesi terjadwal.</td></tr>
         @endforelse
         </tbody>
     </table>

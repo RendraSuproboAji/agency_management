@@ -6,6 +6,7 @@ use App\Http\Controllers\CaptureSessionController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeliverableController;
+use App\Http\Controllers\EquipmentController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\NoteController;
 use App\Http\Controllers\PaymentController;
@@ -51,6 +52,14 @@ Route::middleware('auth:web')->group(function () {
     Route::delete('/requests/{serviceRequest}', [ServiceRequestController::class, 'destroy'])
         ->middleware('admin')
         ->name('requests.destroy');
+
+    // Inventaris peralatan
+    Route::get('/equipment', [EquipmentController::class, 'index'])->name('equipment.index');
+    Route::get('/equipment/create', [EquipmentController::class, 'create'])->name('equipment.create');
+    Route::post('/equipment', [EquipmentController::class, 'store'])->name('equipment.store');
+    Route::get('/equipment/{equipment}/edit', [EquipmentController::class, 'edit'])->name('equipment.edit');
+    Route::put('/equipment/{equipment}', [EquipmentController::class, 'update'])->name('equipment.update');
+    Route::delete('/equipment/{equipment}', [EquipmentController::class, 'destroy'])->name('equipment.destroy');
 
     // Agenda pengambilan gambar lintas project
     Route::get('/sessions', [CaptureSessionController::class, 'index'])->name('sessions.index');

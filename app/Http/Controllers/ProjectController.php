@@ -61,7 +61,7 @@ class ProjectController extends Controller
         $project->load([
             'client',
             'owner',
-            'captureSessions' => fn ($query) => $query->with('crew')->orderBy('scheduled_at'),
+            'captureSessions' => fn ($query) => $query->with('crew', 'equipment')->orderBy('scheduled_at'),
             'deliverables' => fn ($query) => $query->orderByDesc('created_at'),
             'quotations' => fn ($query) => $query->with('items')->orderByDesc('issued_at'),
             'invoices' => fn ($query) => $query->with('payments')->orderByDesc('issued_at'),

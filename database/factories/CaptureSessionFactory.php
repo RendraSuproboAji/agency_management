@@ -19,7 +19,7 @@ class CaptureSessionFactory extends Factory
             'scheduled_at' => fake()->dateTimeBetween('now', '+1 month'),
             'completed_at' => null,
             'location' => fake()->address(),
-            'equipment' => 'Sony A7IV, tripod, lensa 16-35mm',
+            'equipment_note' => 'Sony A7IV, tripod, lensa 16-35mm',
             'shot_count' => null,
             'weather_note' => null,
             'status' => 'scheduled',

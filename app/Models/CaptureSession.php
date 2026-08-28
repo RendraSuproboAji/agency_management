@@ -7,10 +7,11 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 #[Fillable([
     'project_id', 'crew_id', 'scheduled_at', 'completed_at', 'location',
-    'equipment', 'shot_count', 'weather_note', 'status', 'notes',
+    'equipment_note', 'shot_count', 'weather_note', 'status', 'notes',
 ])]
 class CaptureSession extends Model
 {
@@ -30,6 +31,11 @@ class CaptureSession extends Model
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);
+    }
+
+    public function equipment(): BelongsToMany
+    {
+        return $this->belongsToMany(Equipment::class, 'capture_session_equipment');
     }
 
     public function crew(): BelongsTo
