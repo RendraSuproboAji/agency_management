@@ -5,8 +5,11 @@ use App\Http\Controllers\CaptureSessionController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeliverableController;
+use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\PublicRequestController;
+use App\Http\Controllers\QuotationController;
 use App\Http\Controllers\ServiceRequestController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -73,6 +76,26 @@ Route::middleware('auth')->group(function () {
     Route::put('/projects/{project}/deliverables/{deliverable}/approve', [DeliverableController::class, 'approve'])->name('deliverables.approve');
     Route::put('/projects/{project}/deliverables/{deliverable}/revision', [DeliverableController::class, 'requestRevision'])->name('deliverables.revision');
     Route::delete('/projects/{project}/deliverables/{deliverable}', [DeliverableController::class, 'destroy'])->name('deliverables.destroy');
+
+    // Penawaran
+    Route::get('/projects/{project}/quotations/create', [QuotationController::class, 'create'])->name('quotations.create');
+    Route::post('/projects/{project}/quotations', [QuotationController::class, 'store'])->name('quotations.store');
+    Route::get('/projects/{project}/quotations/{quotation}', [QuotationController::class, 'show'])->name('quotations.show');
+    Route::get('/projects/{project}/quotations/{quotation}/edit', [QuotationController::class, 'edit'])->name('quotations.edit');
+    Route::put('/projects/{project}/quotations/{quotation}', [QuotationController::class, 'update'])->name('quotations.update');
+    Route::put('/projects/{project}/quotations/{quotation}/accept', [QuotationController::class, 'accept'])->name('quotations.accept');
+    Route::delete('/projects/{project}/quotations/{quotation}', [QuotationController::class, 'destroy'])->name('quotations.destroy');
+
+    // Invoice & pembayaran
+    Route::get('/invoices', [PaymentController::class, 'index'])->name('invoices.index');
+    Route::get('/projects/{project}/invoices/create', [InvoiceController::class, 'create'])->name('invoices.create');
+    Route::post('/projects/{project}/invoices', [InvoiceController::class, 'store'])->name('invoices.store');
+    Route::get('/projects/{project}/invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');
+    Route::get('/projects/{project}/invoices/{invoice}/edit', [InvoiceController::class, 'edit'])->name('invoices.edit');
+    Route::put('/projects/{project}/invoices/{invoice}', [InvoiceController::class, 'update'])->name('invoices.update');
+    Route::delete('/projects/{project}/invoices/{invoice}', [InvoiceController::class, 'destroy'])->name('invoices.destroy');
+    Route::post('/projects/{project}/invoices/{invoice}/payments', [PaymentController::class, 'store'])->name('payments.store');
+    Route::delete('/projects/{project}/invoices/{invoice}/payments/{payment}', [PaymentController::class, 'destroy'])->name('payments.destroy');
 
     // Kelola pengguna (admin saja)
     Route::middleware('admin')->group(function () {

@@ -40,6 +40,7 @@
         </a>
         <a href="{{ route('clients.index') }}" @class(['active' => str_starts_with((string) $current, 'clients.')])>Klien</a>
         <a href="{{ route('projects.index') }}" @class(['active' => str_starts_with((string) $current, 'projects.')])>Project</a>
+        <a href="{{ route('invoices.index') }}" @class(['active' => str_starts_with((string) $current, 'invoices.')])>Tagihan</a>
         <a href="{{ route('sessions.index') }}" @class(['active' => str_starts_with((string) $current, 'sessions.')])>Sesi Capture</a>
         @if (auth()->user()->isAdmin())
             <a href="{{ route('users.index') }}" @class(['active' => str_starts_with((string) $current, 'users.')])>Pengguna</a>

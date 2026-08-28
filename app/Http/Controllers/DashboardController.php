@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\CaptureSession;
 use App\Models\Client;
 use App\Models\Deliverable;
+use App\Models\Invoice;
 use App\Models\Project;
 use App\Models\ServiceRequest;
 use Illuminate\View\View;
@@ -18,7 +19,16 @@ class DashboardController extends Controller
             ->groupBy('status')
             ->pluck('total', 'status');
 
+        $unsettled = Invoice::unsettled()->with('payments')->get();
+
         return view('dashboard', [
+            'receivable' => $unsettled->sum(fn (Invoice $invoice) => $invoice->outstanding()),
+            'dueInvoices' => Invoice::unsettled()
+                ->with('project.client')
+                ->whereNotNull('due_at')
+                ->orderBy('due_at')
+                ->limit(5)
+                ->get(),
             'statuses' => Project::STATUSES,
             'countsByStatus' => $countsByStatus,
             'clientCount' => Client::count(),

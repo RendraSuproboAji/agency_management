@@ -62,6 +62,51 @@
 
 <section class="panel">
     <div class="page-head">
+        <h2>Penawaran & tagihan</h2>
+        @if ($canManage)
+            <div class="page-actions">
+                <a class="btn" href="{{ route('quotations.create', $project) }}">Penawaran baru</a>
+                <a class="btn" href="{{ route('invoices.create', $project) }}">Invoice baru</a>
+            </div>
+        @endif
+    </div>
+
+    <dl class="detail">
+        <div><dt>Nilai ditagihkan</dt><dd>@include('partials.money', ['amount' => $billed])</dd></div>
+        <div><dt>Sudah dibayar</dt><dd>@include('partials.money', ['amount' => $paid])</dd></div>
+        <div><dt>Sisa tagihan</dt><dd><strong>@include('partials.money', ['amount' => $billed - $paid])</strong></dd></div>
+    </dl>
+
+    <table class="table">
+        <thead><tr><th>Dokumen</th><th>Tanggal</th><th>Nilai</th><th>Status</th></tr></thead>
+        <tbody>
+        @forelse ($project->quotations as $quotation)
+            <tr>
+                <td><a href="{{ route('quotations.show', [$project, $quotation]) }}">{{ $quotation->number }}</a> <span class="muted">penawaran</span></td>
+                <td>{{ $quotation->issued_at->format('d M Y') }}</td>
+                <td>@include('partials.money', ['amount' => $quotation->total()])</td>
+                <td>@include('partials.status-badge', ['status' => $quotation->status])</td>
+            </tr>
+        @empty
+        @endforelse
+        @forelse ($project->invoices as $invoice)
+            <tr>
+                <td><a href="{{ route('invoices.show', [$project, $invoice]) }}">{{ $invoice->number }}</a> <span class="muted">invoice</span></td>
+                <td>{{ $invoice->issued_at->format('d M Y') }}</td>
+                <td>@include('partials.money', ['amount' => $invoice->amount])<br><small class="muted">sisa @include('partials.money', ['amount' => $invoice->outstanding()])</small></td>
+                <td>@include('partials.status-badge', ['status' => $invoice->status])</td>
+            </tr>
+        @empty
+        @endforelse
+        @if ($project->quotations->isEmpty() && $project->invoices->isEmpty())
+            <tr><td colspan="4" class="muted">Belum ada penawaran maupun tagihan.</td></tr>
+        @endif
+        </tbody>
+    </table>
+</section>
+
+<section class="panel">
+    <div class="page-head">
         <h2>Sesi pengambilan gambar</h2>
         @if ($canManage)
             <a class="btn" href="{{ route('sessions.create', $project) }}">Jadwalkan sesi</a>

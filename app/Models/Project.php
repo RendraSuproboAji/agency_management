@@ -61,6 +61,16 @@ class Project extends Model
         return $this->hasMany(Deliverable::class);
     }
 
+    public function quotations(): HasMany
+    {
+        return $this->hasMany(Quotation::class);
+    }
+
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class);
+    }
+
     /** Boleh diubah oleh admin, atau oleh staff yang jadi penanggung jawab. */
     public function isManageableBy(User $user): bool
     {

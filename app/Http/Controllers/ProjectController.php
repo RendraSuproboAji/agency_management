@@ -62,11 +62,17 @@ class ProjectController extends Controller
             'owner',
             'captureSessions' => fn ($query) => $query->with('crew')->orderBy('scheduled_at'),
             'deliverables' => fn ($query) => $query->orderByDesc('created_at'),
+            'quotations' => fn ($query) => $query->with('items')->orderByDesc('issued_at'),
+            'invoices' => fn ($query) => $query->with('payments')->orderByDesc('issued_at'),
         ]);
+
+        $billed = $project->invoices->sum(fn ($invoice) => (float) $invoice->amount);
 
         return view('projects.show', [
             'project' => $project,
             'crew' => User::orderBy('name')->get(),
+            'billed' => $billed,
+            'paid' => $project->invoices->sum(fn ($invoice) => $invoice->paidAmount()),
         ]);
     }
 

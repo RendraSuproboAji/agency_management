@@ -10,6 +10,7 @@
     <div class="stat"><span class="stat-value">{{ $activeProjectCount }}</span><span class="stat-label">Project berjalan</span></div>
     <div class="stat"><span class="stat-value">{{ $upcomingSessions->count() }}</span><span class="stat-label">Sesi terjadwal</span></div>
     <div class="stat"><span class="stat-value">{{ $pendingDeliverables->count() }}</span><span class="stat-label">Menunggu approval</span></div>
+    <div class="stat"><span class="stat-value stat-money">@include('partials.money', ['amount' => $receivable])</span><span class="stat-label">Piutang berjalan</span></div>
 </div>
 
 <section class="panel">
@@ -64,6 +65,21 @@
         @endforelse
     </section>
 </div>
+
+<section class="panel">
+    <h2>Tagihan jatuh tempo</h2>
+    @forelse ($dueInvoices as $invoice)
+        <div class="list-row">
+            <a href="{{ route('invoices.show', [$invoice->project, $invoice]) }}">{{ $invoice->number }} · {{ $invoice->project->client->name }}</a>
+            <span class="muted">
+                jatuh tempo {{ $invoice->due_at->format('d M Y') }} ·
+                sisa @include('partials.money', ['amount' => $invoice->outstanding()])
+            </span>
+        </div>
+    @empty
+        <p class="muted">Tidak ada tagihan berjalan.</p>
+    @endforelse
+</section>
 
 <section class="panel">
     <h2>Deliverable menunggu approval</h2>
