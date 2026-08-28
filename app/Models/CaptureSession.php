@@ -11,7 +11,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 #[Fillable([
     'project_id', 'crew_id', 'scheduled_at', 'completed_at', 'location',
-    'equipment_note', 'shot_count', 'weather_note', 'status', 'notes',
+    'equipment_note', 'shot_count', 'raw_size_gb', 'frame_count',
+    'backup_location', 'weather_note', 'status', 'notes',
 ])]
 class CaptureSession extends Model
 {
@@ -25,6 +26,7 @@ class CaptureSession extends Model
         return [
             'scheduled_at' => 'datetime',
             'completed_at' => 'datetime',
+            'raw_size_gb' => 'decimal:2',
         ];
     }
 

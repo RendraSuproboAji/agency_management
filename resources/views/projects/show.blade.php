@@ -150,6 +150,97 @@
 
 <section class="panel">
     <div class="page-head">
+        <h2>Job processing</h2>
+    </div>
+
+    <p class="muted">Total data mentah dari seluruh sesi: {{ number_format($rawSizeGb, 2, ',', '.') }} GB</p>
+
+    <table class="table">
+        <thead><tr><th>Jenis</th><th>Sesi</th><th>Mesin</th><th>Durasi</th><th>Output</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+        @forelse ($project->processingJobs as $job)
+            <tr>
+                <td>{{ str_replace('_', ' ', $job->kind) }}</td>
+                <td>{{ $job->captureSession?->scheduled_at->format('d M Y') ?: '—' }}</td>
+                <td>{{ $job->machine ?: '—' }}</td>
+                <td>{{ $job->humanDuration() }}</td>
+                <td>{{ $job->output_size_gb ? $job->output_size_gb.' GB' : '—' }}</td>
+                <td>@include('partials.status-badge', ['status' => $job->status])
+                    @if ($job->notes)<br><small class="muted">{{ $job->notes }}</small>@endif
+                </td>
+                <td class="row-actions">
+                    @if ($canManage)
+                        @if (in_array($job->status, ['queued', 'failed'], true))
+                            <form method="post" action="{{ route('jobs.start', [$project, $job]) }}">
+                                @csrf @method('put')
+                                <button class="btn btn-mini">Jalankan</button>
+                            </form>
+                        @elseif ($job->status === 'running')
+                            <form method="post" action="{{ route('jobs.finish', [$project, $job]) }}">
+                                @csrf @method('put')
+                                <input type="hidden" name="status" value="done">
+                                <input type="number" step="0.01" min="0" class="mini" name="output_size_gb" placeholder="GB">
+                                <button class="btn btn-mini">Selesai</button>
+                            </form>
+                            <form method="post" action="{{ route('jobs.finish', [$project, $job]) }}">
+                                @csrf @method('put')
+                                <input type="hidden" name="status" value="failed">
+                                <input type="text" name="notes" placeholder="Penyebab gagal">
+                                <button class="btn btn-mini btn-danger">Gagal</button>
+                            </form>
+                        @endif
+                        <form method="post" action="{{ route('jobs.destroy', [$project, $job]) }}" data-confirm="Hapus job ini?">
+                            @csrf @method('delete')
+                            <button class="btn btn-mini btn-danger">Hapus</button>
+                        </form>
+                    @endif
+                </td>
+            </tr>
+        @empty
+            <tr><td colspan="7" class="muted">Belum ada job processing.</td></tr>
+        @endforelse
+        </tbody>
+    </table>
+
+    @if ($canManage)
+        <form method="post" action="{{ route('jobs.store', $project) }}">
+            @csrf
+            <div class="form-grid">
+                <label>Jenis *
+                    <select name="kind" required>
+                        @foreach (\App\Models\ProcessingJob::KINDS as $option)
+                            <option value="{{ $option }}" @selected(old('kind') === $option)>{{ str_replace('_', ' ', $option) }}</option>
+                        @endforeach
+                    </select>
+                </label>
+                <label>Status *
+                    <select name="status" required>
+                        @foreach (\App\Models\ProcessingJob::STATUSES as $option)
+                            <option value="{{ $option }}" @selected(old('status') === $option)>{{ $option }}</option>
+                        @endforeach
+                    </select>
+                </label>
+                <label>Dari sesi
+                    <select name="capture_session_id">
+                        <option value="">— tidak terkait sesi tertentu —</option>
+                        @foreach ($project->captureSessions as $session)
+                            <option value="{{ $session->id }}" @selected((int) old('capture_session_id') === $session->id)>
+                                {{ $session->scheduled_at->format('d M Y H:i') }}
+                            </option>
+                        @endforeach
+                    </select>
+                </label>
+                <label>Mesin
+                    <input type="text" name="machine" value="{{ old('machine') }}" placeholder="Mis. workstation-01 (RTX 4090)">
+                </label>
+            </div>
+            <button class="btn">Tambah job</button>
+        </form>
+    @endif
+</section>
+
+<section class="panel">
+    <div class="page-head">
         <h2>Deliverable</h2>
         @if ($canManage)
             <a class="btn" href="{{ route('deliverables.create', $project) }}">Tambah deliverable</a>

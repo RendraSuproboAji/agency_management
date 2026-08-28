@@ -20,6 +20,9 @@ yang menjadi viewer virtual tour hasil produksinya.
 | **Deliverable & Aset** | Berkas terunggah atau tautan eksternal, versi, alur `draft → submitted → approved / revision` |
 | **Penawaran** | Penawaran berbaris item, subtotal/pajak/total, status `draft → sent → accepted / rejected` |
 | **Invoice & Pembayaran** | Invoice (bisa disalin dari penawaran disetujui), pencatatan DP/termin/pelunasan, rekap piutang |
+| **Peralatan** | Inventaris kamera/drone/lidar, ditugaskan ke sesi capture, dengan deteksi bentrok per hari |
+| **Produksi** | Metadata data mentah (ukuran, jumlah frame, lokasi backup) dan job processing beserta durasinya |
+| **Portal Klien** | Login terpisah untuk klien: progres project, jadwal, hasil pekerjaan, tagihan, approval deliverable |
 | **Lampiran & Catatan** | Kontrak, denah, foto survei; catatan internal; riwayat aktivitas otomatis per project |
 | **Pengguna** | Kelola akun dan peran (admin saja) |
 
@@ -29,6 +32,9 @@ yang menjadi viewer virtual tour hasil produksinya.
 request masuk → konversi jadi project → penawaran disetujui →
 invoice & pembayaran → produksi → deliverable disetujui
 ```
+
+Penawaran dan invoice punya halaman siap cetak (`/print`) berkop surat —
+klien menyimpannya sebagai PDF lewat browser, tanpa dependensi tambahan.
 
 Nomor penawaran dan invoice berurutan per tahun (`QUO/2026/0001`,
 `INV/2026/0001`). Status invoice mengikuti pembayaran yang tercatat:
@@ -49,6 +55,11 @@ tahap `processing` bila masih berada di tahap `lead`, `survey`, atau `capture`.
 - **staff** — melihat semua klien dan project, tetapi hanya boleh mengubah
   project yang dirinya menjadi penanggung jawab (beserta sesi, deliverable,
   penawaran, invoice, lampiran, dan catatannya).
+
+- **klien** — guard terpisah di `/portal`: hanya melihat project miliknya
+  sendiri, dan bisa menyetujui atau meminta revisi deliverable yang sudah
+  diserahkan. Catatan internal, riwayat aktivitas, dan dokumen berstatus
+  `draft` tidak pernah tampil di portal.
 
 Catatan internal hanya boleh dihapus penulisnya sendiri atau admin. Menghapus
 klien, project, penawaran, dan invoice khusus admin.
@@ -83,13 +94,28 @@ Lupa kata sandi? Tidak ada alur reset lewat web — gunakan artisan:
 
 ```bash
 php artisan admin:set-password admin@agency.test kata-sandi-baru
+php artisan client:set-password museum-kota-lama kata-sandi-portal --enable
 ```
+
+## Portal klien
+
+Aktifkan lewat halaman ubah klien (centang "Aktifkan portal" dan isi kata
+sandi), atau lewat `client:set-password --enable`. Klien lalu masuk di
+`/portal/login` memakai email yang tercatat pada datanya.
+
+## Booking peralatan
+
+Satu alat tidak bisa dipakai dua sesi aktif pada **tanggal kalender yang sama** —
+kru memesan alat per hari dan sistem tidak menyimpan jam selesai, jadi tanggal
+adalah satuan bentrok yang jujur di sini. Sesi berstatus `cancelled` melepas
+alatnya kembali.
 
 ## Pengujian
 
 ```bash
-php artisan test      # 74 tes: auth, request, klien, project, sesi, deliverable,
-                      #         penawaran, invoice, pembayaran, lampiran, catatan, log
+php artisan test      # 106 tes: auth, request, klien, project, sesi, deliverable,
+                      #          penawaran, invoice, pembayaran, lampiran, catatan,
+                      #          log, cetak dokumen, portal klien, peralatan, job
 vendor/bin/pint       # format kode
 ```
 
@@ -103,9 +129,10 @@ tur 3D hasil produksi bisa dibuka langsung dari halaman project.
 
 ```
 app/Models/            ServiceRequest, Client, Project, CaptureSession,
-                       Deliverable, Quotation, Invoice, Payment,
-                       Attachment, Note, Activity, User
+                       Deliverable, Quotation, Invoice, Payment, Equipment,
+                       ProcessingJob, Attachment, Note, Activity, User
 app/Http/Controllers/  satu controller per modul, validasi inline
+app/Http/Controllers/Portal/  area klien (guard "client")
 app/Http/Middleware/   EnsureAdmin (alias middleware "admin")
 app/Support/           Slug (slug unik), DocumentNumber (nomor dokumen),
                        ActivityLogger (jejak aktivitas)

@@ -13,6 +13,7 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\Portal\AuthController as PortalAuthController;
 use App\Http\Controllers\Portal\DeliverableController as PortalDeliverableController;
 use App\Http\Controllers\Portal\ProjectController as PortalProjectController;
+use App\Http\Controllers\ProcessingJobController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\PublicRequestController;
 use App\Http\Controllers\QuotationController;
@@ -90,6 +91,13 @@ Route::middleware('auth:web')->group(function () {
     Route::put('/projects/{project}/deliverables/{deliverable}/approve', [DeliverableController::class, 'approve'])->name('deliverables.approve');
     Route::put('/projects/{project}/deliverables/{deliverable}/revision', [DeliverableController::class, 'requestRevision'])->name('deliverables.revision');
     Route::delete('/projects/{project}/deliverables/{deliverable}', [DeliverableController::class, 'destroy'])->name('deliverables.destroy');
+
+    // Job processing (photogrammetry / splat training)
+    Route::post('/projects/{project}/jobs', [ProcessingJobController::class, 'store'])->name('jobs.store');
+    Route::put('/projects/{project}/jobs/{job}', [ProcessingJobController::class, 'update'])->name('jobs.update');
+    Route::put('/projects/{project}/jobs/{job}/start', [ProcessingJobController::class, 'start'])->name('jobs.start');
+    Route::put('/projects/{project}/jobs/{job}/finish', [ProcessingJobController::class, 'finish'])->name('jobs.finish');
+    Route::delete('/projects/{project}/jobs/{job}', [ProcessingJobController::class, 'destroy'])->name('jobs.destroy');
 
     // Lampiran & catatan internal
     Route::post('/projects/{project}/attachments', [AttachmentController::class, 'store'])->name('attachments.store');

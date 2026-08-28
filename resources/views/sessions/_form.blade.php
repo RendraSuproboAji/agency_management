@@ -27,6 +27,16 @@
     <label class="span-2">Catatan cuaca / kondisi
         <input type="text" name="weather_note" value="{{ old('weather_note', $session->weather_note) }}">
     </label>
+    <label>Ukuran data mentah (GB)
+        <input type="number" step="0.01" min="0" name="raw_size_gb" value="{{ old('raw_size_gb', $session->raw_size_gb) }}">
+    </label>
+    <label>Jumlah frame
+        <input type="number" min="0" name="frame_count" value="{{ old('frame_count', $session->frame_count) }}">
+    </label>
+    <label class="span-2">Lokasi backup
+        <input type="text" name="backup_location" value="{{ old('backup_location', $session->backup_location) }}"
+               placeholder="Mis. NAS/2026/showroom-kemang, HDD-03">
+    </label>
     <label class="span-2">Catatan peralatan
         <textarea name="equipment_note" rows="3">{{ old('equipment_note', $session->equipment_note) }}</textarea>
     </label>

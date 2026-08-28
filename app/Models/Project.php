@@ -61,6 +61,11 @@ class Project extends Model
         return $this->hasMany(Deliverable::class);
     }
 
+    public function processingJobs(): HasMany
+    {
+        return $this->hasMany(ProcessingJob::class);
+    }
+
     public function attachments(): HasMany
     {
         return $this->hasMany(Attachment::class);

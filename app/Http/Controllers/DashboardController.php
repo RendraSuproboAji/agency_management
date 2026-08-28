@@ -6,6 +6,7 @@ use App\Models\CaptureSession;
 use App\Models\Client;
 use App\Models\Deliverable;
 use App\Models\Invoice;
+use App\Models\ProcessingJob;
 use App\Models\Project;
 use App\Models\ServiceRequest;
 use Illuminate\View\View;
@@ -22,6 +23,7 @@ class DashboardController extends Controller
         $unsettled = Invoice::unsettled()->with('payments')->get();
 
         return view('dashboard', [
+            'runningJobs' => ProcessingJob::running()->with('project.client')->orderBy('started_at')->get(),
             'receivable' => $unsettled->sum(fn (Invoice $invoice) => $invoice->outstanding()),
             'dueInvoices' => Invoice::unsettled()
                 ->with('project.client')

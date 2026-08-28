@@ -10,6 +10,7 @@
     <div class="stat"><span class="stat-value">{{ $activeProjectCount }}</span><span class="stat-label">Project berjalan</span></div>
     <div class="stat"><span class="stat-value">{{ $upcomingSessions->count() }}</span><span class="stat-label">Sesi terjadwal</span></div>
     <div class="stat"><span class="stat-value">{{ $pendingDeliverables->count() }}</span><span class="stat-label">Menunggu approval</span></div>
+    <div class="stat"><span class="stat-value">{{ $runningJobs->count() }}</span><span class="stat-label">Job berjalan</span></div>
     <div class="stat"><span class="stat-value stat-money">@include('partials.money', ['amount' => $receivable])</span><span class="stat-label">Piutang berjalan</span></div>
 </div>
 
@@ -65,6 +66,21 @@
         @endforelse
     </section>
 </div>
+
+@if ($runningJobs->isNotEmpty())
+<section class="panel">
+    <h2>Job processing berjalan</h2>
+    @foreach ($runningJobs as $job)
+        <div class="list-row">
+            <a href="{{ route('projects.show', $job->project) }}">{{ str_replace('_', ' ', $job->kind) }} · {{ $job->project->title }}</a>
+            <span class="muted">
+                {{ $job->machine ?: 'mesin tidak dicatat' }}
+                @if ($job->started_at) · mulai {{ $job->started_at->diffForHumans() }} @endif
+            </span>
+        </div>
+    @endforeach
+</section>
+@endif
 
 <section class="panel">
     <h2>Tagihan jatuh tempo</h2>

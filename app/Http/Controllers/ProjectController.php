@@ -65,6 +65,7 @@ class ProjectController extends Controller
             'deliverables' => fn ($query) => $query->orderByDesc('created_at'),
             'quotations' => fn ($query) => $query->with('items')->orderByDesc('issued_at'),
             'invoices' => fn ($query) => $query->with('payments')->orderByDesc('issued_at'),
+            'processingJobs' => fn ($query) => $query->with('captureSession')->latest(),
             'attachments' => fn ($query) => $query->with('uploader')->latest(),
             'notes' => fn ($query) => $query->with('author')->latest(),
             'activities' => fn ($query) => $query->with('user')->latest()->limit(30),
@@ -77,6 +78,7 @@ class ProjectController extends Controller
             'crew' => User::orderBy('name')->get(),
             'billed' => $billed,
             'paid' => $project->invoices->sum(fn ($invoice) => $invoice->paidAmount()),
+            'rawSizeGb' => $project->captureSessions->sum(fn ($session) => (float) $session->raw_size_gb),
         ]);
     }
 
