@@ -93,6 +93,8 @@ small, .muted { color: var(--muted); }
     background: var(--bg-elevated); border: 1px solid var(--line); border-radius: var(--radius); color: var(--text);
 }
 .pipeline-step:hover { border-color: var(--accent); text-decoration: none; }
+.pipeline-current { border-color: var(--accent); background: var(--accent); }
+.pipeline-current .pipeline-label { color: var(--accent-text); font-weight: 700; }
 .pipeline-count { display: block; font-size: 1.3rem; font-weight: 700; }
 .pipeline-label { font-size: .75rem; color: var(--muted); text-transform: capitalize; }
 

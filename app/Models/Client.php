@@ -4,21 +4,38 @@ namespace App\Models;
 
 use Database\Factories\ClientFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 
 #[Fillable([
     'name', 'slug', 'contact_name', 'email', 'phone',
-    'industry', 'address', 'notes', 'status',
+    'industry', 'address', 'notes', 'status', 'password', 'portal_enabled',
 ])]
-class Client extends Model
+#[Hidden(['password', 'remember_token'])]
+class Client extends Authenticatable
 {
     /** @use HasFactory<ClientFactory> */
     use HasFactory;
 
     public const STATUSES = ['lead', 'active', 'inactive'];
+
+    protected function casts(): array
+    {
+        return [
+            'password' => 'hashed',
+            'portal_enabled' => 'boolean',
+            'last_login_at' => 'datetime',
+        ];
+    }
+
+    /** Klien hanya bisa masuk portal bila diaktifkan dan kata sandinya sudah diisi. */
+    public function canUsePortal(): bool
+    {
+        return $this->portal_enabled && filled($this->password);
+    }
 
     public function getRouteKeyName(): string
     {

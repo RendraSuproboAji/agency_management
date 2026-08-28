@@ -9,6 +9,9 @@ use App\Http\Controllers\DeliverableController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\NoteController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\Portal\AuthController as PortalAuthController;
+use App\Http\Controllers\Portal\DeliverableController as PortalDeliverableController;
+use App\Http\Controllers\Portal\ProjectController as PortalProjectController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\PublicRequestController;
 use App\Http\Controllers\QuotationController;
@@ -22,12 +25,12 @@ Route::post('/request', [PublicRequestController::class, 'store'])
     ->middleware('throttle:5,1')
     ->name('public.request.store');
 
-Route::middleware('guest')->group(function () {
+Route::middleware('guest:web')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:6,1');
 });
 
-Route::middleware('auth')->group(function () {
+Route::middleware('auth:web')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
@@ -116,5 +119,27 @@ Route::middleware('auth')->group(function () {
         Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
         Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
         Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+    });
+});
+
+/*
+|--------------------------------------------------------------------------
+| Portal klien
+|--------------------------------------------------------------------------
+| Guard terpisah ("client"): akses baca ke project miliknya sendiri, plus
+| menyetujui atau meminta revisi deliverable.
+*/
+Route::prefix('portal')->name('portal.')->group(function () {
+    Route::middleware('guest:client')->group(function () {
+        Route::get('/login', [PortalAuthController::class, 'showLogin'])->name('login');
+        Route::post('/login', [PortalAuthController::class, 'login'])->middleware('throttle:6,1');
+    });
+
+    Route::middleware('auth:client')->group(function () {
+        Route::get('/', [PortalProjectController::class, 'index'])->name('dashboard');
+        Route::post('/logout', [PortalAuthController::class, 'logout'])->name('logout');
+        Route::get('/projects/{project}', [PortalProjectController::class, 'show'])->name('projects.show');
+        Route::put('/projects/{project}/deliverables/{deliverable}/approve', [PortalDeliverableController::class, 'approve'])->name('deliverables.approve');
+        Route::put('/projects/{project}/deliverables/{deliverable}/revision', [PortalDeliverableController::class, 'requestRevision'])->name('deliverables.revision');
     });
 });

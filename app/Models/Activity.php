@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
-#[Fillable(['project_id', 'user_id', 'subject_type', 'subject_id', 'action', 'description', 'properties'])]
+#[Fillable(['project_id', 'user_id', 'actor', 'subject_type', 'subject_id', 'action', 'description', 'properties'])]
 class Activity extends Model
 {
     protected function casts(): array
@@ -28,5 +28,11 @@ class Activity extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /** Nama yang ditampilkan di riwayat: staff, klien portal, atau sistem. */
+    public function actorName(): string
+    {
+        return $this->user?->name ?? $this->actor ?? 'Sistem';
     }
 }

@@ -58,6 +58,12 @@ class ClientController extends Controller
     {
         $data = $this->validated($request);
         $data['slug'] = Slug::uniqueFor(Client::class, $data['name'], $client->id);
+        $data['portal_enabled'] = $request->boolean('portal_enabled');
+
+        // Kata sandi portal hanya ditulis ulang bila diisi.
+        if (blank($data['password'] ?? null)) {
+            unset($data['password']);
+        }
 
         $client->update($data);
 
@@ -85,6 +91,7 @@ class ClientController extends Controller
             'address' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
             'status' => ['required', 'in:'.implode(',', Client::STATUSES)],
+            'password' => ['nullable', 'string', 'min:8'],
         ]);
     }
 }

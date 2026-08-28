@@ -25,6 +25,17 @@ class ClientFactory extends Factory
             'address' => fake()->address(),
             'notes' => null,
             'status' => 'active',
+            'password' => null,
+            'portal_enabled' => false,
         ];
+    }
+
+    /** Klien yang sudah bisa masuk portal. */
+    public function withPortal(string $password = 'portal-password'): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'password' => $password,
+            'portal_enabled' => true,
+        ]);
     }
 }

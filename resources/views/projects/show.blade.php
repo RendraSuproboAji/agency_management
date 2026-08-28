@@ -280,7 +280,7 @@
     @forelse ($project->activities as $activity)
         <div class="list-row">
             <span>{{ $activity->description }}</span>
-            <span class="muted">{{ $activity->user?->name ?: 'Sistem' }} · {{ $activity->created_at->format('d M Y H:i') }}</span>
+            <span class="muted">{{ $activity->actorName() }} · {{ $activity->created_at->format('d M Y H:i') }}</span>
         </div>
     @empty
         <p class="muted">Belum ada aktivitas tercatat.</p>
