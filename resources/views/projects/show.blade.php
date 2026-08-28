@@ -1,0 +1,150 @@
+@extends('layouts.app')
+@section('title', $project->title.' · '.config('site.name'))
+
+@php $canManage = $project->isManageableBy(auth()->user()); @endphp
+
+@section('content')
+<div class="page-head">
+    <div>
+        <h1>{{ $project->title }}</h1>
+        <p class="muted">
+            <a href="{{ route('clients.show', $project->client) }}">{{ $project->client->name }}</a>
+            · {{ $project->service_type }}
+            @include('partials.status-badge', ['status' => $project->status])
+        </p>
+    </div>
+    <div class="page-actions">
+        @if ($canManage)
+            <a class="btn" href="{{ route('projects.edit', $project) }}">Ubah</a>
+        @endif
+        @if (auth()->user()->isAdmin())
+            <form method="post" action="{{ route('projects.destroy', $project) }}" data-confirm="Hapus project ini?">
+                @csrf @method('delete')
+                <button class="btn btn-danger">Hapus</button>
+            </form>
+        @endif
+    </div>
+</div>
+
+<section class="panel">
+    <dl class="detail">
+        <div><dt>PIC</dt><dd>{{ $project->owner?->name ?: '—' }}</dd></div>
+        <div><dt>Deadline</dt><dd>{{ $project->deadline?->format('d M Y') ?: '—' }}</dd></div>
+        <div><dt>Budget</dt><dd>{{ $project->budget ? 'Rp '.number_format((float) $project->budget, 0, ',', '.') : '—' }}</dd></div>
+        <div><dt>Lokasi</dt><dd>{{ $project->site_location ?: '—' }}</dd></div>
+        <div><dt>Luas area</dt><dd>{{ $project->area_sqm ? $project->area_sqm.' m²' : '—' }}</dd></div>
+        <div><dt>Virtual tour</dt><dd>
+            @if ($project->gallery_url)
+                <a href="{{ $project->gallery_url }}" target="_blank" rel="noopener">Buka tur</a>
+            @else — @endif
+        </dd></div>
+    </dl>
+
+    @if ($project->brief)
+        <h3>Brief / request klien</h3>
+        <p class="notes">{{ $project->brief }}</p>
+    @endif
+
+    @if ($canManage)
+        <form class="inline-form" method="post" action="{{ route('projects.status', $project) }}">
+            @csrf @method('put')
+            <label class="inline">Pindah status
+                <select name="status">
+                    @foreach (\App\Models\Project::STATUSES as $option)
+                        <option value="{{ $option }}" @selected($project->status === $option)>{{ $option }}</option>
+                    @endforeach
+                </select>
+            </label>
+            <button class="btn">Simpan status</button>
+        </form>
+    @endif
+</section>
+
+<section class="panel">
+    <div class="page-head">
+        <h2>Sesi pengambilan gambar</h2>
+        @if ($canManage)
+            <a class="btn" href="{{ route('sessions.create', $project) }}">Jadwalkan sesi</a>
+        @endif
+    </div>
+
+    <table class="table">
+        <thead><tr><th>Jadwal</th><th>Kru</th><th>Lokasi</th><th>Jumlah shot</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+        @forelse ($project->captureSessions as $session)
+            <tr>
+                <td>{{ $session->scheduled_at->format('d M Y H:i') }}</td>
+                <td>{{ $session->crew?->name ?: '—' }}</td>
+                <td>{{ $session->location ?: '—' }}</td>
+                <td>{{ $session->shot_count ?? '—' }}</td>
+                <td>@include('partials.status-badge', ['status' => $session->status])</td>
+                <td class="row-actions">
+                    @if ($canManage)
+                        <a href="{{ route('sessions.edit', [$project, $session]) }}">Ubah</a>
+                        @if ($session->status === 'scheduled')
+                            <form method="post" action="{{ route('sessions.complete', [$project, $session]) }}">
+                                @csrf @method('put')
+                                <input type="number" name="shot_count" min="0" placeholder="shot" class="mini">
+                                <button class="btn btn-mini">Selesai</button>
+                            </form>
+                        @endif
+                        <form method="post" action="{{ route('sessions.destroy', [$project, $session]) }}" data-confirm="Hapus sesi ini?">
+                            @csrf @method('delete')
+                            <button class="btn btn-mini btn-danger">Hapus</button>
+                        </form>
+                    @endif
+                </td>
+            </tr>
+        @empty
+            <tr><td colspan="6" class="muted">Belum ada sesi terjadwal.</td></tr>
+        @endforelse
+        </tbody>
+    </table>
+</section>
+
+<section class="panel">
+    <div class="page-head">
+        <h2>Deliverable</h2>
+        @if ($canManage)
+            <a class="btn" href="{{ route('deliverables.create', $project) }}">Tambah deliverable</a>
+        @endif
+    </div>
+
+    @forelse ($project->deliverables as $deliverable)
+        <div class="deliverable">
+            <div>
+                <strong>{{ $deliverable->title }}</strong> <span class="muted">v{{ $deliverable->version }} · {{ $deliverable->type }}</span>
+                @include('partials.status-badge', ['status' => $deliverable->status])
+                @if ($deliverable->url())
+                    <a href="{{ $deliverable->url() }}" target="_blank" rel="noopener">Buka aset</a>
+                @endif
+                @if ($deliverable->review_note)
+                    <p class="notes">{{ $deliverable->review_note }}</p>
+                @endif
+            </div>
+            @if ($canManage)
+                <div class="row-actions">
+                    <a href="{{ route('deliverables.edit', [$project, $deliverable]) }}">Ubah</a>
+                    @if ($deliverable->status !== 'approved')
+                        <form method="post" action="{{ route('deliverables.approve', [$project, $deliverable]) }}">
+                            @csrf @method('put')
+                            <button class="btn btn-mini">Setujui</button>
+                        </form>
+                    @endif
+                    <form method="post" action="{{ route('deliverables.revision', [$project, $deliverable]) }}">
+                        @csrf @method('put')
+                        <input type="text" name="review_note" placeholder="Catatan revisi" required>
+                        <button class="btn btn-mini">Minta revisi</button>
+                    </form>
+                    <form method="post" action="{{ route('deliverables.destroy', [$project, $deliverable]) }}" data-confirm="Hapus deliverable ini?">
+                        @csrf @method('delete')
+                        <button class="btn btn-mini btn-danger">Hapus</button>
+                    </form>
+                </div>
+            @endif
+        </div>
+    @empty
+        <p class="muted">Belum ada deliverable.</p>
+    @endforelse
+</section>
+@endsection

@@ -1,0 +1,36 @@
+services:
+  app:
+    build:
+      context: .
+      args:
+        BASE_REGISTRY: ${BASE_REGISTRY:-docker.io}
+    ports:
+      - "8080:80"
+    environment:
+      APP_NAME: "Agency Management"
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_KEY: "${APP_KEY:-}"
+      APP_URL: "http://localhost:8080"
+      LOG_CHANNEL: stderr
+      DB_CONNECTION: sqlite
+      DB_DATABASE: /var/www/html/storage/database/database.sqlite
+      SESSION_DRIVER: database
+      CACHE_STORE: database
+      QUEUE_CONNECTION: database
+      FILESYSTEM_DISK: local
+      ADMIN_NAME: "Administrator"
+      ADMIN_EMAIL: "${ADMIN_EMAIL:-admin@example.com}"
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD:-changeme123}"
+      SEED_DEMO: "${SEED_DEMO:-true}"
+    volumes:
+      - agency-storage:/var/www/html/storage
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost/up"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  agency-storage:

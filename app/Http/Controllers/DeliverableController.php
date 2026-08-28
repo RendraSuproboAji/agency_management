@@ -1,0 +1,145 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Deliverable;
+use App\Models\Project;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\View\View;
+
+class DeliverableController extends Controller
+{
+    public function create(Request $request, Project $project): View
+    {
+        abort_unless($project->isManageableBy($request->user()), 403);
+
+        return view('deliverables.create', [
+            'project' => $project,
+            'deliverable' => new Deliverable([
+                'type' => 'splat',
+                'status' => 'draft',
+                'version' => $project->deliverables()->max('version') + 1,
+            ]),
+        ]);
+    }
+
+    public function store(Request $request, Project $project): RedirectResponse
+    {
+        abort_unless($project->isManageableBy($request->user()), 403);
+
+        $data = $this->validated($request);
+        $data['file_path'] = $this->storeFile($request, $project);
+        $data['submitted_at'] = $data['status'] === 'submitted' ? now() : null;
+
+        $project->deliverables()->create($data);
+
+        return redirect()->route('projects.show', $project)->with('status', 'Deliverable ditambahkan.');
+    }
+
+    public function edit(Request $request, Project $project, Deliverable $deliverable): View
+    {
+        $this->authorizeDeliverable($request, $project, $deliverable);
+
+        return view('deliverables.edit', [
+            'project' => $project,
+            'deliverable' => $deliverable,
+        ]);
+    }
+
+    public function update(Request $request, Project $project, Deliverable $deliverable): RedirectResponse
+    {
+        $this->authorizeDeliverable($request, $project, $deliverable);
+
+        $data = $this->validated($request);
+
+        if ($path = $this->storeFile($request, $project)) {
+            $this->deleteFile($deliverable);
+            $data['file_path'] = $path;
+        }
+
+        if ($data['status'] === 'submitted' && ! $deliverable->submitted_at) {
+            $data['submitted_at'] = now();
+        }
+
+        $deliverable->update($data);
+
+        return redirect()->route('projects.show', $project)->with('status', 'Deliverable diperbarui.');
+    }
+
+    public function approve(Request $request, Project $project, Deliverable $deliverable): RedirectResponse
+    {
+        $this->authorizeDeliverable($request, $project, $deliverable);
+
+        $deliverable->update([
+            'status' => 'approved',
+            'approved_at' => now(),
+            'review_note' => $request->input('review_note'),
+        ]);
+
+        return back()->with('status', 'Deliverable disetujui.');
+    }
+
+    public function requestRevision(Request $request, Project $project, Deliverable $deliverable): RedirectResponse
+    {
+        $this->authorizeDeliverable($request, $project, $deliverable);
+
+        $data = $request->validate([
+            'review_note' => ['required', 'string'],
+        ]);
+
+        $deliverable->update($data + [
+            'status' => 'revision',
+            'approved_at' => null,
+        ]);
+
+        return back()->with('status', 'Revisi diminta.');
+    }
+
+    public function destroy(Request $request, Project $project, Deliverable $deliverable): RedirectResponse
+    {
+        $this->authorizeDeliverable($request, $project, $deliverable);
+
+        $this->deleteFile($deliverable);
+        $deliverable->delete();
+
+        return redirect()->route('projects.show', $project)->with('status', 'Deliverable dihapus.');
+    }
+
+    private function authorizeDeliverable(Request $request, Project $project, Deliverable $deliverable): void
+    {
+        abort_unless($deliverable->project_id === $project->id, 404);
+        abort_unless($project->isManageableBy($request->user()), 403);
+    }
+
+    private function storeFile(Request $request, Project $project): ?string
+    {
+        if (! $request->hasFile('file')) {
+            return null;
+        }
+
+        return $request->file('file')->store('deliverables/'.$project->slug, 'public');
+    }
+
+    private function deleteFile(Deliverable $deliverable): void
+    {
+        if ($deliverable->file_path) {
+            Storage::disk('public')->delete($deliverable->file_path);
+        }
+    }
+
+    /** @return array<string, mixed> */
+    private function validated(Request $request): array
+    {
+        return $request->validate([
+            'title' => ['required', 'string', 'max:150'],
+            'type' => ['required', 'in:'.implode(',', Deliverable::TYPES)],
+            'version' => ['required', 'integer', 'min:1'],
+            'external_url' => ['nullable', 'url', 'max:255'],
+            'file' => ['nullable', 'file', 'max:262144'],
+            'status' => ['required', 'in:'.implode(',', Deliverable::STATUSES)],
+            'review_note' => ['nullable', 'string'],
+        ]);
+    }
+}
