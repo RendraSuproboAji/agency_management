@@ -27,8 +27,17 @@
 
 <div class="shell">
     <nav class="sidebar" data-drawer>
-        @php $current = request()->route()?->getName(); @endphp
+        @php
+            $current = request()->route()?->getName();
+            $newRequestCount = \App\Models\ServiceRequest::where('status', 'new')->count();
+        @endphp
         <a href="{{ route('dashboard') }}" @class(['active' => $current === 'dashboard'])>Dashboard</a>
+        <a href="{{ route('requests.index') }}" @class(['active' => str_starts_with((string) $current, 'requests.')])>
+            Request
+            @if ($newRequestCount)
+                <span class="pill">{{ $newRequestCount }}</span>
+            @endif
+        </a>
         <a href="{{ route('clients.index') }}" @class(['active' => str_starts_with((string) $current, 'clients.')])>Klien</a>
         <a href="{{ route('projects.index') }}" @class(['active' => str_starts_with((string) $current, 'projects.')])>Project</a>
         <a href="{{ route('sessions.index') }}" @class(['active' => str_starts_with((string) $current, 'sessions.')])>Sesi Capture</a>

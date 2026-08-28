@@ -6,8 +6,16 @@ use App\Http\Controllers\ClientController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeliverableController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\PublicRequestController;
+use App\Http\Controllers\ServiceRequestController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
+
+// Form request klien — publik, tanpa login.
+Route::get('/request', [PublicRequestController::class, 'create'])->name('public.request.create');
+Route::post('/request', [PublicRequestController::class, 'store'])
+    ->middleware('throttle:5,1')
+    ->name('public.request.store');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
@@ -26,6 +34,15 @@ Route::middleware('auth')->group(function () {
     Route::get('/clients/{client}/edit', [ClientController::class, 'edit'])->name('clients.edit');
     Route::put('/clients/{client}', [ClientController::class, 'update'])->name('clients.update');
     Route::delete('/clients/{client}', [ClientController::class, 'destroy'])->name('clients.destroy');
+
+    // Request masuk dari form publik
+    Route::get('/requests', [ServiceRequestController::class, 'index'])->name('requests.index');
+    Route::get('/requests/{serviceRequest}', [ServiceRequestController::class, 'show'])->name('requests.show');
+    Route::put('/requests/{serviceRequest}/status', [ServiceRequestController::class, 'updateStatus'])->name('requests.status');
+    Route::post('/requests/{serviceRequest}/convert', [ServiceRequestController::class, 'convert'])->name('requests.convert');
+    Route::delete('/requests/{serviceRequest}', [ServiceRequestController::class, 'destroy'])
+        ->middleware('admin')
+        ->name('requests.destroy');
 
     // Agenda pengambilan gambar lintas project
     Route::get('/sessions', [CaptureSessionController::class, 'index'])->name('sessions.index');

@@ -82,7 +82,7 @@ small, .muted { color: var(--muted); }
 .list-row:last-child { border-bottom: 0; }
 .notes { white-space: pre-line; color: var(--muted); }
 
-.stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .75rem; }
+.stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .75rem; }
 .stat { background: var(--bg-soft); border: 1px solid var(--line); border-radius: var(--radius); padding: .9rem; }
 .stat-value { display: block; font-size: 1.7rem; font-weight: 700; }
 .stat-label { color: var(--muted); font-size: .8rem; }
@@ -154,6 +154,17 @@ textarea { resize: vertical; }
 .badge-capture, .badge-processing, .badge-submitted, .badge-scheduled, .badge-review { border-color: var(--accent); color: var(--accent); }
 .badge-revision, .badge-cancelled { border-color: var(--danger); color: var(--danger); }
 .badge-lead, .badge-survey, .badge-draft { border-color: var(--warn); color: var(--warn); }
+
+/* Honeypot anti-spam: tersembunyi dari manusia, tetap terisi oleh bot. */
+.hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+.pill {
+    display: inline-block; min-width: 1.35rem; padding: 0 .35rem;
+    border-radius: 999px; background: var(--accent); color: var(--accent-text);
+    font-size: .7rem; font-weight: 700; text-align: center;
+}
+.sidebar a.active .pill { background: var(--accent-text); color: var(--accent); }
+.request-card { width: min(640px, 94vw); }
 
 /* Alerts */
 .alert { padding: .6rem .9rem; border-radius: var(--radius); margin-bottom: 1rem; border: 1px solid var(--line); }

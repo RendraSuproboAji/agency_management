@@ -5,6 +5,7 @@
 <h1>Dashboard</h1>
 
 <div class="stat-row">
+    <div class="stat"><span class="stat-value">{{ $newRequestCount }}</span><span class="stat-label">Request baru</span></div>
     <div class="stat"><span class="stat-value">{{ $clientCount }}</span><span class="stat-label">Klien</span></div>
     <div class="stat"><span class="stat-value">{{ $activeProjectCount }}</span><span class="stat-label">Project berjalan</span></div>
     <div class="stat"><span class="stat-value">{{ $upcomingSessions->count() }}</span><span class="stat-label">Sesi terjadwal</span></div>
@@ -22,6 +23,18 @@
         @endforeach
     </div>
 </section>
+
+@if ($latestRequests->isNotEmpty())
+<section class="panel">
+    <h2>Request baru</h2>
+    @foreach ($latestRequests as $item)
+        <div class="list-row">
+            <a href="{{ route('requests.show', $item) }}">{{ $item->company ?: $item->name }}</a>
+            <span class="muted">{{ $item->service_type }} · {{ $item->created_at->diffForHumans() }}</span>
+        </div>
+    @endforeach
+</section>
+@endif
 
 <div class="grid-2">
     <section class="panel">

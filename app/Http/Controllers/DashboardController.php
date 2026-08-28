@@ -6,6 +6,7 @@ use App\Models\CaptureSession;
 use App\Models\Client;
 use App\Models\Deliverable;
 use App\Models\Project;
+use App\Models\ServiceRequest;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
@@ -21,6 +22,8 @@ class DashboardController extends Controller
             'statuses' => Project::STATUSES,
             'countsByStatus' => $countsByStatus,
             'clientCount' => Client::count(),
+            'newRequestCount' => ServiceRequest::where('status', 'new')->count(),
+            'latestRequests' => ServiceRequest::where('status', 'new')->latest()->limit(5)->get(),
             'activeProjectCount' => Project::whereNotIn('status', ['delivered', 'archived'])->count(),
             'upcomingDeadlines' => Project::with('client')
                 ->whereNotNull('deadline')
