@@ -1,4 +1,3 @@
-# syntax=docker/dockerfile:1
 ARG BASE_REGISTRY=docker.io
 
 FROM ${BASE_REGISTRY}/composer:2 AS vendor
@@ -8,13 +7,11 @@ RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist --no-in
 COPY . .
 RUN composer dump-autoload --optimize --no-dev
 
-FROM ${BASE_REGISTRY}/php:8.3-apache AS runtime
+FROM ${BASE_REGISTRY}/php:8.4-apache AS runtime
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends libzip-dev libsqlite3-dev unzip curl \
-    && docker-php-ext-install pdo_sqlite zip \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
-
+# Tidak ada paket yang perlu dipasang: image php:8.4-apache sudah membawa
+# pdo_sqlite, sqlite3, dan curl (dipakai healthcheck). Vendor dipasang di stage
+# composer dengan --no-dev, jadi ext-zip pun tidak diperlukan di runtime.
 RUN a2enmod rewrite headers expires \
     && sed -ri 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/000-default.conf \
     && printf '<Directory /var/www/html/public>\n    AllowOverride All\n    Require all granted\n</Directory>\n' \

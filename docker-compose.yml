@@ -26,7 +26,10 @@ services:
     volumes:
       - agency-storage:/var/www/html/storage
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://localhost/up"]
+      # Sengaja bukan /up: endpoint itu tetap 200 walau APP_KEY kosong dan
+      # seluruh halaman 500. /login membangkitkan encrypter dan sesi database,
+      # jadi kegagalan konfigurasi benar-benar tertangkap.
+      test: ["CMD", "curl", "-fsS", "http://localhost/login"]
       interval: 30s
       timeout: 5s
       retries: 5

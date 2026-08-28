@@ -3,16 +3,23 @@ set -e
 
 cd /var/www/html
 
-if [ -z "${APP_KEY}" ] && ! grep -q '^APP_KEY=base64:' .env 2>/dev/null; then
-    cp -n .env.example .env 2>/dev/null || true
-    php artisan key:generate --force
-fi
-
-# SQLite hidup di volume storage/ supaya data bertahan antar restart.
+# SQLite dan berkas unggahan hidup di volume storage/ supaya bertahan antar restart.
 mkdir -p storage/app/public storage/database
 : "${DB_DATABASE:=/var/www/html/storage/database/database.sqlite}"
 export DB_DATABASE
 touch "${DB_DATABASE}"
+
+# APP_KEY dari environment dipakai apa adanya. Kalau kosong, kunci dibuat sekali
+# lalu disimpan di volume — variabel environment menutupi isi .env, jadi kunci
+# harus diekspor, bukan sekadar ditulis ke berkas.
+if [ -z "${APP_KEY}" ]; then
+    if [ ! -f storage/app.key ]; then
+        php artisan key:generate --show > storage/app.key
+        chmod 600 storage/app.key
+    fi
+    APP_KEY="$(cat storage/app.key)"
+    export APP_KEY
+fi
 
 php artisan migrate --force
 php artisan db:seed --force

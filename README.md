@@ -5,7 +5,7 @@ mencatat request klien, menjadwalkan pengambilan gambar/scan di lokasi, melacak
 produksi (photogrammetry / gaussian splatting / panorama), sampai menyerahkan
 deliverable dan mendapat persetujuan klien.
 
-Dibangun dengan Laravel 13 + Blade + SQLite, tanpa Node/Vite — mengikuti
+Dibangun dengan Laravel 13 (PHP 8.4) + Blade + SQLite, tanpa Node/Vite — mengikuti
 konvensi repo saudaranya, [GalleryVT](https://github.com/RendraSuproboAji/GalleryVT),
 yang menjadi viewer virtual tour hasil produksinya.
 
@@ -71,7 +71,9 @@ cp .env.example .env          # opsional, hanya untuk menyetel ADMIN_*
 ADMIN_EMAIL=admin@agency.test ADMIN_PASSWORD=rahasia123 docker compose up --build
 ```
 
-Aplikasi tersedia di <http://localhost:8080>, healthcheck di `/up`. Database
+Aplikasi tersedia di <http://localhost:8080>. Kalau `APP_KEY` tidak diisi,
+entrypoint membuatnya sekali dan menyimpannya di `storage/app.key` di dalam
+volume, jadi sesi dan data terenkripsi tetap valid setelah restart. Database
 SQLite dan berkas deliverable disimpan di volume `agency-storage`, jadi tetap ada
 setelah container di-restart.
 
