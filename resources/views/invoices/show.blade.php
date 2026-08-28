@@ -15,6 +15,7 @@
         </p>
     </div>
     <div class="page-actions">
+        <a class="btn" href="{{ route('invoices.print', [$project, $invoice]) }}" target="_blank" rel="noopener">Cetak</a>
         @if ($canManage)
             <a class="btn" href="{{ route('invoices.edit', [$project, $invoice]) }}">Ubah</a>
         @endif

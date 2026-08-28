@@ -15,6 +15,7 @@
         </p>
     </div>
     <div class="page-actions">
+        <a class="btn" href="{{ route('quotations.print', [$project, $quotation]) }}" target="_blank" rel="noopener">Cetak</a>
         @if ($canManage)
             <a class="btn" href="{{ route('quotations.edit', [$project, $quotation]) }}">Ubah</a>
             @if ($quotation->status !== 'accepted')

@@ -90,6 +90,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/projects/{project}/quotations/create', [QuotationController::class, 'create'])->name('quotations.create');
     Route::post('/projects/{project}/quotations', [QuotationController::class, 'store'])->name('quotations.store');
     Route::get('/projects/{project}/quotations/{quotation}', [QuotationController::class, 'show'])->name('quotations.show');
+    Route::get('/projects/{project}/quotations/{quotation}/print', [QuotationController::class, 'print'])->name('quotations.print');
     Route::get('/projects/{project}/quotations/{quotation}/edit', [QuotationController::class, 'edit'])->name('quotations.edit');
     Route::put('/projects/{project}/quotations/{quotation}', [QuotationController::class, 'update'])->name('quotations.update');
     Route::put('/projects/{project}/quotations/{quotation}/accept', [QuotationController::class, 'accept'])->name('quotations.accept');
@@ -100,6 +101,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/projects/{project}/invoices/create', [InvoiceController::class, 'create'])->name('invoices.create');
     Route::post('/projects/{project}/invoices', [InvoiceController::class, 'store'])->name('invoices.store');
     Route::get('/projects/{project}/invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');
+    Route::get('/projects/{project}/invoices/{invoice}/print', [InvoiceController::class, 'print'])->name('invoices.print');
     Route::get('/projects/{project}/invoices/{invoice}/edit', [InvoiceController::class, 'edit'])->name('invoices.edit');
     Route::put('/projects/{project}/invoices/{invoice}', [InvoiceController::class, 'update'])->name('invoices.update');
     Route::delete('/projects/{project}/invoices/{invoice}', [InvoiceController::class, 'destroy'])->name('invoices.destroy');

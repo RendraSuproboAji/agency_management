@@ -58,6 +58,17 @@ class QuotationController extends Controller
         ]);
     }
 
+    public function print(Project $project, Quotation $quotation): View
+    {
+        abort_unless($quotation->project_id === $project->id, 404);
+
+        return view('quotations.print', [
+            'project' => $project->load('client'),
+            'quotation' => $quotation->load('items'),
+            'backUrl' => route('quotations.show', [$project, $quotation]),
+        ]);
+    }
+
     public function edit(Request $request, Project $project, Quotation $quotation): View
     {
         $this->authorizeQuotation($request, $project, $quotation);

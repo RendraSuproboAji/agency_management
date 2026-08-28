@@ -58,6 +58,17 @@ class InvoiceController extends Controller
         ]);
     }
 
+    public function print(Project $project, Invoice $invoice): View
+    {
+        abort_unless($invoice->project_id === $project->id, 404);
+
+        return view('invoices.print', [
+            'project' => $project->load('client'),
+            'invoice' => $invoice->load(['payments' => fn ($query) => $query->orderBy('paid_at'), 'quotation']),
+            'backUrl' => route('invoices.show', [$project, $invoice]),
+        ]);
+    }
+
     public function edit(Request $request, Project $project, Invoice $invoice): View
     {
         $this->authorizeInvoice($request, $project, $invoice);

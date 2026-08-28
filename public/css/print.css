@@ -1,0 +1,65 @@
+/* Gaya berdiri sendiri untuk dokumen cetak — sengaja tidak mewarisi tema gelap
+   style.css supaya yang keluar di kertas adalah tinta hitam di atas putih. */
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    background: #f4f4f5;
+    color: #111;
+    font: 12pt/1.5 "Times New Roman", Georgia, serif;
+}
+
+.sheet {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 12mm auto;
+    padding: 18mm 16mm;
+    background: #fff;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, .18);
+}
+
+.letterhead {
+    display: flex;
+    justify-content: space-between;
+    gap: 12mm;
+    padding-bottom: 6mm;
+    border-bottom: 2px solid #111;
+}
+.letterhead h1 { margin: 0; font-size: 18pt; }
+.letterhead .tagline { margin: 1mm 0 0; font-size: 9pt; color: #555; }
+.letterhead address { font-style: normal; font-size: 9pt; text-align: right; color: #333; }
+
+h2.doc-title { margin: 8mm 0 1mm; font-size: 15pt; letter-spacing: .06em; text-transform: uppercase; }
+.doc-meta { margin: 0 0 6mm; font-size: 10pt; color: #444; }
+
+.parties { display: flex; gap: 12mm; margin-bottom: 6mm; }
+.parties > div { flex: 1; }
+.parties h3 { margin: 0 0 1mm; font-size: 9pt; text-transform: uppercase; letter-spacing: .06em; color: #555; }
+.parties p { margin: 0; font-size: 10pt; }
+
+table { width: 100%; border-collapse: collapse; margin-bottom: 6mm; font-size: 10pt; }
+th, td { padding: 2mm 2mm; border-bottom: 1px solid #ccc; text-align: left; vertical-align: top; }
+thead th { border-bottom: 1.5px solid #111; font-size: 9pt; text-transform: uppercase; letter-spacing: .04em; }
+tfoot td { border-bottom: 0; padding-top: 1.5mm; }
+.right { text-align: right; }
+.total-row td { border-top: 1.5px solid #111; font-size: 11pt; }
+
+.panel-note { margin-bottom: 6mm; font-size: 10pt; }
+.panel-note h3 { margin: 0 0 1mm; font-size: 10pt; }
+.notes { white-space: pre-line; margin: 0; }
+
+.bank { margin-bottom: 10mm; font-size: 10pt; }
+.bank h3 { margin: 0 0 1mm; font-size: 9pt; text-transform: uppercase; letter-spacing: .06em; color: #555; }
+
+.signature { margin-top: 12mm; width: 60mm; font-size: 10pt; }
+.signature .line { margin-top: 20mm; border-top: 1px solid #111; padding-top: 1mm; }
+
+.actions { margin-top: 10mm; display: flex; gap: 4mm; align-items: center; }
+.actions button { padding: 2mm 4mm; font: inherit; font-size: 10pt; cursor: pointer; }
+
+@media print {
+    body { background: #fff; }
+    .sheet { width: auto; min-height: 0; margin: 0; padding: 0; box-shadow: none; }
+    .no-print { display: none !important; }
+    @page { size: A4; margin: 16mm; }
+}
