@@ -1,0 +1,127 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Deliverable;
+use App\Models\Project;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+use Tests\TestCase;
+
+class DeliverableTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_a_deliverable_file_is_stored_under_the_project_slug(): void
+    {
+        Storage::fake('public');
+
+        $owner = User::factory()->create();
+        $project = Project::factory()->create(['owner_id' => $owner->id, 'slug' => 'showroom-kemang']);
+
+        $this->actingAs($owner)->post(route('deliverables.store', $project), [
+            'title' => 'Scene utama',
+            'type' => 'splat',
+            'version' => 1,
+            'status' => 'submitted',
+            'file' => UploadedFile::fake()->create('scene.ply', 64),
+        ])->assertRedirect(route('projects.show', $project));
+
+        $deliverable = $project->deliverables()->firstOrFail();
+
+        $this->assertStringStartsWith('deliverables/showroom-kemang/', $deliverable->file_path);
+        Storage::disk('public')->assertExists($deliverable->file_path);
+        $this->assertNotNull($deliverable->submitted_at);
+    }
+
+    public function test_a_deliverable_can_point_at_an_external_viewer_url(): void
+    {
+        $owner = User::factory()->create();
+        $project = Project::factory()->create(['owner_id' => $owner->id]);
+
+        $this->actingAs($owner)->post(route('deliverables.store', $project), [
+            'title' => 'Virtual tour',
+            'type' => 'splat',
+            'version' => 2,
+            'status' => 'draft',
+            'external_url' => 'https://gallery.example.com/p/showroom-kemang',
+        ])->assertRedirect();
+
+        $deliverable = $project->deliverables()->firstOrFail();
+
+        $this->assertSame('https://gallery.example.com/p/showroom-kemang', $deliverable->url());
+        $this->assertNull($deliverable->submitted_at);
+    }
+
+    public function test_a_deliverable_can_be_approved(): void
+    {
+        $owner = User::factory()->create();
+        $project = Project::factory()->create(['owner_id' => $owner->id]);
+        $deliverable = Deliverable::factory()->create(['project_id' => $project->id, 'status' => 'submitted']);
+
+        $this->actingAs($owner)
+            ->put(route('deliverables.approve', [$project, $deliverable]), ['review_note' => 'Bagus.'])
+            ->assertRedirect();
+
+        $deliverable->refresh();
+        $this->assertSame('approved', $deliverable->status);
+        $this->assertNotNull($deliverable->approved_at);
+    }
+
+    public function test_requesting_a_revision_requires_a_note(): void
+    {
+        $owner = User::factory()->create();
+        $project = Project::factory()->create(['owner_id' => $owner->id]);
+        $deliverable = Deliverable::factory()->create([
+            'project_id' => $project->id,
+            'status' => 'approved',
+            'approved_at' => now(),
+        ]);
+
+        $this->actingAs($owner)
+            ->from(route('projects.show', $project))
+            ->put(route('deliverables.revision', [$project, $deliverable]))
+            ->assertSessionHasErrors('review_note');
+
+        $this->actingAs($owner)
+            ->put(route('deliverables.revision', [$project, $deliverable]), ['review_note' => 'Warna terlalu gelap.'])
+            ->assertRedirect();
+
+        $deliverable->refresh();
+        $this->assertSame('revision', $deliverable->status);
+        $this->assertNull($deliverable->approved_at);
+        $this->assertSame('Warna terlalu gelap.', $deliverable->review_note);
+    }
+
+    public function test_deleting_a_deliverable_removes_its_file(): void
+    {
+        Storage::fake('public');
+
+        $owner = User::factory()->create();
+        $project = Project::factory()->create(['owner_id' => $owner->id]);
+        Storage::disk('public')->put('deliverables/scene.ply', 'x');
+        $deliverable = Deliverable::factory()->create([
+            'project_id' => $project->id,
+            'file_path' => 'deliverables/scene.ply',
+        ]);
+
+        $this->actingAs($owner)
+            ->delete(route('deliverables.destroy', [$project, $deliverable]))
+            ->assertRedirect();
+
+        Storage::disk('public')->assertMissing('deliverables/scene.ply');
+        $this->assertDatabaseMissing('deliverables', ['id' => $deliverable->id]);
+    }
+
+    public function test_staff_cannot_touch_deliverables_on_someone_elses_project(): void
+    {
+        $project = Project::factory()->create(['owner_id' => User::factory()->create()->id]);
+        $deliverable = Deliverable::factory()->create(['project_id' => $project->id]);
+
+        $this->actingAs(User::factory()->create())
+            ->put(route('deliverables.approve', [$project, $deliverable]))
+            ->assertForbidden();
+    }
+}
