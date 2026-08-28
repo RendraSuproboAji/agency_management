@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Deliverable;
 use App\Models\Project;
+use App\Support\ActivityLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -78,6 +79,8 @@ class DeliverableController extends Controller
             'review_note' => $request->input('review_note'),
         ]);
 
+        ActivityLogger::log($deliverable, 'deliverable.approved', 'Menyetujui deliverable "'.$deliverable->title.'" v'.$deliverable->version.'.');
+
         return back()->with('status', 'Deliverable disetujui.');
     }
 
@@ -93,6 +96,8 @@ class DeliverableController extends Controller
             'status' => 'revision',
             'approved_at' => null,
         ]);
+
+        ActivityLogger::log($deliverable, 'deliverable.revision', 'Meminta revisi deliverable "'.$deliverable->title.'" v'.$deliverable->version.'.');
 
         return back()->with('status', 'Revisi diminta.');
     }

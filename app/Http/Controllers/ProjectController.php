@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Client;
 use App\Models\Project;
 use App\Models\User;
+use App\Support\ActivityLogger;
 use App\Support\Slug;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -64,6 +65,9 @@ class ProjectController extends Controller
             'deliverables' => fn ($query) => $query->orderByDesc('created_at'),
             'quotations' => fn ($query) => $query->with('items')->orderByDesc('issued_at'),
             'invoices' => fn ($query) => $query->with('payments')->orderByDesc('issued_at'),
+            'attachments' => fn ($query) => $query->with('uploader')->latest(),
+            'notes' => fn ($query) => $query->with('author')->latest(),
+            'activities' => fn ($query) => $query->with('user')->latest()->limit(30),
         ]);
 
         $billed = $project->invoices->sum(fn ($invoice) => (float) $invoice->amount);
@@ -104,7 +108,10 @@ class ProjectController extends Controller
             'status' => ['required', 'in:'.implode(',', Project::STATUSES)],
         ]);
 
+        $previous = $project->status;
         $project->update($data);
+
+        ActivityLogger::log($project, 'project.status', 'Mengubah status project dari "'.$previous.'" ke "'.$data['status'].'".');
 
         return back()->with('status', 'Status project menjadi "'.$data['status'].'".');
     }

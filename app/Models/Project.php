@@ -61,6 +61,21 @@ class Project extends Model
         return $this->hasMany(Deliverable::class);
     }
 
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(Attachment::class);
+    }
+
+    public function notes(): HasMany
+    {
+        return $this->hasMany(Note::class);
+    }
+
+    public function activities(): HasMany
+    {
+        return $this->hasMany(Activity::class);
+    }
+
     public function quotations(): HasMany
     {
         return $this->hasMany(Quotation::class);

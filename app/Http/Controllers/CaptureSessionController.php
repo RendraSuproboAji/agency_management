@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\CaptureSession;
 use App\Models\Project;
 use App\Models\User;
+use App\Support\ActivityLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -82,6 +83,8 @@ class CaptureSessionController extends Controller
             'status' => 'done',
             'completed_at' => now(),
         ]);
+
+        ActivityLogger::log($session, 'session.completed', 'Menyelesaikan sesi pengambilan gambar '.$session->scheduled_at->format('d M Y').'.');
 
         if (in_array($project->status, ['lead', 'survey', 'capture'], true)) {
             $project->update(['status' => 'processing']);

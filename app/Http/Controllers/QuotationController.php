@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Project;
 use App\Models\Quotation;
+use App\Support\ActivityLogger;
 use App\Support\DocumentNumber;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -88,6 +89,8 @@ class QuotationController extends Controller
         $this->authorizeQuotation($request, $project, $quotation);
 
         $quotation->update(['status' => 'accepted']);
+
+        ActivityLogger::log($quotation, 'quotation.accepted', 'Penawaran '.$quotation->number.' disetujui klien.');
 
         return back()->with('status', 'Penawaran ditandai disetujui klien.');
     }

@@ -192,4 +192,98 @@
         <p class="muted">Belum ada deliverable.</p>
     @endforelse
 </section>
+<section class="panel">
+    <div class="page-head">
+        <h2>Lampiran</h2>
+    </div>
+
+    <table class="table">
+        <thead><tr><th>Judul</th><th>Kategori</th><th>Ukuran</th><th>Diunggah</th><th></th></tr></thead>
+        <tbody>
+        @forelse ($project->attachments as $attachment)
+            <tr>
+                <td><a href="{{ route('attachments.download', [$project, $attachment]) }}">{{ $attachment->title }}</a></td>
+                <td>{{ $attachment->category }}</td>
+                <td>{{ $attachment->humanSize() }}</td>
+                <td>{{ $attachment->created_at->format('d M Y') }}<br><small class="muted">{{ $attachment->uploader?->name }}</small></td>
+                <td class="row-actions">
+                    @if ($canManage)
+                        <form method="post" action="{{ route('attachments.destroy', [$project, $attachment]) }}" data-confirm="Hapus lampiran ini?">
+                            @csrf @method('delete')
+                            <button class="btn btn-mini btn-danger">Hapus</button>
+                        </form>
+                    @endif
+                </td>
+            </tr>
+        @empty
+            <tr><td colspan="5" class="muted">Belum ada lampiran.</td></tr>
+        @endforelse
+        </tbody>
+    </table>
+
+    @if ($canManage)
+        <form method="post" action="{{ route('attachments.store', $project) }}" enctype="multipart/form-data">
+            @csrf
+            <div class="form-grid">
+                <label>Judul *
+                    <input type="text" name="title" value="{{ old('title') }}" required placeholder="Mis. Kontrak kerja sama">
+                </label>
+                <label>Kategori *
+                    <select name="category" required>
+                        @foreach (\App\Models\Attachment::CATEGORIES as $option)
+                            <option value="{{ $option }}" @selected(old('category') === $option)>{{ $option }}</option>
+                        @endforeach
+                    </select>
+                </label>
+                <label class="span-2">Berkas *
+                    <input type="file" name="file" required>
+                </label>
+            </div>
+            <button class="btn">Unggah lampiran</button>
+        </form>
+    @endif
+</section>
+
+<section class="panel">
+    <h2>Catatan internal</h2>
+
+    @forelse ($project->notes as $note)
+        <div class="note">
+            <p class="notes">{{ $note->body }}</p>
+            <p class="muted">
+                {{ $note->author?->name ?: 'Pengguna terhapus' }} · {{ $note->created_at->diffForHumans() }}
+                @if ($note->user_id === auth()->id() || auth()->user()->isAdmin())
+                    <form method="post" action="{{ route('notes.destroy', [$project, $note]) }}" data-confirm="Hapus catatan ini?">
+                        @csrf @method('delete')
+                        <button class="btn btn-mini btn-danger">Hapus</button>
+                    </form>
+                @endif
+            </p>
+        </div>
+    @empty
+        <p class="muted">Belum ada catatan.</p>
+    @endforelse
+
+    @if ($canManage)
+        <form method="post" action="{{ route('notes.store', $project) }}">
+            @csrf
+            <label>Tulis catatan
+                <textarea name="body" rows="3" required placeholder="Hasil rapat, kendala di lapangan, kesepakatan dengan klien…">{{ old('body') }}</textarea>
+            </label>
+            <button class="btn">Simpan catatan</button>
+        </form>
+    @endif
+</section>
+
+<section class="panel">
+    <h2>Riwayat aktivitas</h2>
+    @forelse ($project->activities as $activity)
+        <div class="list-row">
+            <span>{{ $activity->description }}</span>
+            <span class="muted">{{ $activity->user?->name ?: 'Sistem' }} · {{ $activity->created_at->format('d M Y H:i') }}</span>
+        </div>
+    @empty
+        <p class="muted">Belum ada aktivitas tercatat.</p>
+    @endforelse
+</section>
 @endsection

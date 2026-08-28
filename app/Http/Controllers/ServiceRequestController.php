@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Client;
 use App\Models\Project;
 use App\Models\ServiceRequest;
+use App\Support\ActivityLogger;
 use App\Support\Slug;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -95,6 +96,8 @@ class ServiceRequestController extends Controller
 
             return $project;
         });
+
+        ActivityLogger::log($project, 'request.converted', 'Mengonversi request dari '.$serviceRequest->name.' menjadi project.');
 
         return redirect()->route('projects.show', $project)
             ->with('status', 'Request dikonversi menjadi project.');

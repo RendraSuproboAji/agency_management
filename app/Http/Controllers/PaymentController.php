@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\Project;
+use App\Support\ActivityLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -40,8 +41,10 @@ class PaymentController extends Controller
             'note' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $invoice->payments()->create($data);
+        $payment = $invoice->payments()->create($data);
         $invoice->refresh()->recalculateStatus();
+
+        ActivityLogger::log($invoice, 'payment.recorded', 'Mencatat pembayaran Rp '.number_format((float) $payment->amount, 0, ',', '.').' untuk '.$invoice->number.'.');
 
         return back()->with('status', 'Pembayaran dicatat.');
     }

@@ -1,11 +1,13 @@
 <?php
 
+use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CaptureSessionController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeliverableController;
 use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\NoteController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\PublicRequestController;
@@ -76,6 +78,13 @@ Route::middleware('auth')->group(function () {
     Route::put('/projects/{project}/deliverables/{deliverable}/approve', [DeliverableController::class, 'approve'])->name('deliverables.approve');
     Route::put('/projects/{project}/deliverables/{deliverable}/revision', [DeliverableController::class, 'requestRevision'])->name('deliverables.revision');
     Route::delete('/projects/{project}/deliverables/{deliverable}', [DeliverableController::class, 'destroy'])->name('deliverables.destroy');
+
+    // Lampiran & catatan internal
+    Route::post('/projects/{project}/attachments', [AttachmentController::class, 'store'])->name('attachments.store');
+    Route::get('/projects/{project}/attachments/{attachment}', [AttachmentController::class, 'download'])->name('attachments.download');
+    Route::delete('/projects/{project}/attachments/{attachment}', [AttachmentController::class, 'destroy'])->name('attachments.destroy');
+    Route::post('/projects/{project}/notes', [NoteController::class, 'store'])->name('notes.store');
+    Route::delete('/projects/{project}/notes/{note}', [NoteController::class, 'destroy'])->name('notes.destroy');
 
     // Penawaran
     Route::get('/projects/{project}/quotations/create', [QuotationController::class, 'create'])->name('quotations.create');
