@@ -7,6 +7,14 @@ RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist --no-in
 COPY . .
 RUN composer dump-autoload --optimize --no-dev
 
+FROM ${BASE_REGISTRY}/node:22-bookworm-slim AS assets
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY vite.config.js ./
+COPY resources ./resources
+RUN npm run build
+
 FROM ${BASE_REGISTRY}/php:8.4-apache AS runtime
 
 # Tidak ada paket yang perlu dipasang: image php:8.4-apache sudah membawa
@@ -22,6 +30,7 @@ COPY docker/php.ini /usr/local/etc/php/conf.d/agency.ini
 
 WORKDIR /var/www/html
 COPY --from=vendor /app /var/www/html
+COPY --from=assets /app/public/build /var/www/html/public/build
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh \
     && chown -R www-data:www-data storage bootstrap/cache
