@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Facades\Storage;
 
 #[Fillable(['project_id', 'uploaded_by', 'title', 'category', 'file_path', 'mime', 'size'])]
 class Attachment extends Model
@@ -25,11 +24,6 @@ class Attachment extends Model
     public function uploader(): BelongsTo
     {
         return $this->belongsTo(User::class, 'uploaded_by');
-    }
-
-    public function url(): string
-    {
-        return Storage::disk('public')->url($this->file_path);
     }
 
     public function humanSize(): string

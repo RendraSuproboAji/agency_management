@@ -40,8 +40,8 @@ class SmokeTest extends TestCase
 
     public function test_every_named_get_page_renders(): void
     {
-        Storage::fake('public');
-        Storage::disk('public')->put('attachments/kontrak.pdf', 'x');
+        Storage::fake('local');
+        Storage::disk('local')->put('attachments/kontrak.pdf', 'x');
 
         $admin = User::factory()->admin()->create();
         $client = Client::factory()->create();

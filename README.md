@@ -114,6 +114,23 @@ Aktifkan lewat halaman ubah klien (centang "Aktifkan portal" dan isi kata
 sandi), atau lewat `client:set-password --enable`. Klien lalu masuk di
 `/portal/login` memakai email yang tercatat pada datanya.
 
+## Waktu dan zona waktu
+
+Waktu tampil dan penjadwalan mengikuti `APP_TIMEZONE` (default `Asia/Jakarta`
+di `.env.example` dan docker-compose). Dengan UTC, agenda pagi hari di Indonesia
+akan terhitung "kemarin" dan hilang dari dashboard.
+
+## Berkas dan keamanan
+
+Lampiran internal — kontrak, denah, foto survei — disimpan di disk **privat**
+dan hanya bisa diambil lewat route unduh yang terautentikasi. Deliverable tetap
+di disk publik karena memang dibagikan ke klien lewat portal.
+
+Unggahan dibatasi daftar-izin ekstensi (`App\Support\UploadRules`): dokumen,
+gambar, video, aset 3D, dan arsip. SVG dan HTML ditolak karena tersimpan dengan
+ekstensinya dan disajikan dari origin aplikasi, sehingga bisa membawa skrip yang
+membajak sesi orang yang membukanya.
+
 ## Arsip dan backup
 
 Menghapus klien, project, penawaran, invoice, deliverable, atau peralatan tidak
@@ -141,7 +158,7 @@ alatnya kembali.
 ## Pengujian
 
 ```bash
-php artisan test      # 118 tes: auth, request, klien, project, sesi, deliverable,
+php artisan test      # 148 tes: auth, request, klien, project, sesi, deliverable,
                       #          penawaran, invoice, pembayaran, lampiran, catatan,
                       #          log, cetak dokumen, portal klien, peralatan, job,
                       #          arsip, backup

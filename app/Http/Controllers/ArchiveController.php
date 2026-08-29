@@ -104,19 +104,23 @@ class ArchiveController extends Controller
      */
     private function deleteFiles(mixed $model): void
     {
-        $paths = match (true) {
-            $model instanceof Deliverable => [$model->file_path],
+        // Deliverable dibagikan ke klien lewat disk publik; lampiran internal
+        // hidup di disk privat. Keduanya harus dibersihkan dari disknya sendiri.
+        [$public, $private] = match (true) {
+            $model instanceof Deliverable => [[$model->file_path], []],
             $model instanceof Project => [
-                ...$model->deliverables()->withTrashed()->pluck('file_path'),
-                ...$model->attachments()->pluck('file_path'),
+                $model->deliverables()->withTrashed()->pluck('file_path')->all(),
+                $model->attachments()->pluck('file_path')->all(),
             ],
-            default => [],
+            default => [[], []],
         };
 
-        $paths = array_filter($paths);
-
-        if ($paths) {
+        if ($paths = array_filter($public)) {
             Storage::disk('public')->delete($paths);
+        }
+
+        if ($paths = array_filter($private)) {
+            Storage::disk('local')->delete($paths);
         }
     }
 

@@ -43,9 +43,11 @@ class InvoiceController extends Controller
 
         $data = $this->validated($request, $project);
 
-        $invoice = $project->invoices()->create($data + [
-            'number' => DocumentNumber::next(Invoice::class, 'INV'),
-        ]);
+        $invoice = DocumentNumber::assign(
+            Invoice::class,
+            'INV',
+            fn (string $number) => $project->invoices()->create($data + ['number' => $number]),
+        );
 
         return redirect()->route('invoices.show', [$project, $invoice])
             ->with('status', 'Invoice '.$invoice->number.' dibuat.');

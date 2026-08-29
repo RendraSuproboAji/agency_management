@@ -9,6 +9,7 @@ services:
     environment:
       APP_NAME: "Agency Management"
       APP_ENV: production
+      APP_TIMEZONE: "${APP_TIMEZONE:-Asia/Jakarta}"
       APP_DEBUG: "false"
       APP_KEY: "${APP_KEY:-}"
       APP_URL: "http://localhost:8080"
@@ -45,6 +46,7 @@ services:
     environment:
       APP_NAME: "Agency Management"
       APP_ENV: production
+      APP_TIMEZONE: "${APP_TIMEZONE:-Asia/Jakarta}"
       APP_DEBUG: "false"
       APP_KEY: "${APP_KEY:-}"
       LOG_CHANNEL: stderr

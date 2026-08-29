@@ -143,8 +143,9 @@ class ArchiveTest extends TestCase
     public function test_force_deleting_a_project_removes_every_file_it_owned(): void
     {
         Storage::fake('public');
+        Storage::fake('local');
         Storage::disk('public')->put('deliverables/scene.ply', 'x');
-        Storage::disk('public')->put('attachments/kontrak.pdf', 'x');
+        Storage::disk('local')->put('attachments/kontrak.pdf', 'x');
 
         $project = Project::factory()->create();
         Deliverable::factory()->create(['project_id' => $project->id, 'file_path' => 'deliverables/scene.ply']);
@@ -156,7 +157,7 @@ class ArchiveTest extends TestCase
             ->assertRedirect();
 
         Storage::disk('public')->assertMissing('deliverables/scene.ply');
-        Storage::disk('public')->assertMissing('attachments/kontrak.pdf');
+        Storage::disk('local')->assertMissing('attachments/kontrak.pdf');
     }
 
     public function test_the_archive_is_admin_only(): void

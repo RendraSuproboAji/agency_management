@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Deliverable;
 use App\Models\Project;
 use App\Support\ActivityLogger;
+use App\Support\UploadRules;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -65,8 +66,18 @@ class DeliverableController extends Controller
             $data['file_path'] = $path;
         }
 
+        // Stempel waktu harus mengikuti statusnya; kalau tidak, deliverable bisa
+        // berstatus "revision" tetapi masih menyimpan tanggal disetujui.
         if ($data['status'] === 'submitted' && ! $deliverable->submitted_at) {
             $data['submitted_at'] = now();
+        }
+
+        if ($data['status'] !== 'approved') {
+            $data['approved_at'] = null;
+        }
+
+        if ($data['status'] === 'draft') {
+            $data['submitted_at'] = null;
         }
 
         $deliverable->update($data);
@@ -158,7 +169,7 @@ class DeliverableController extends Controller
             'type' => ['required', 'in:'.implode(',', Deliverable::TYPES)],
             'version' => ['required', 'integer', 'min:1'],
             'external_url' => ['nullable', 'url', 'max:255'],
-            'file' => ['nullable', 'file', 'max:262144'],
+            'file' => UploadRules::file(false),
             'status' => ['required', 'in:'.implode(',', Deliverable::STATUSES)],
             'review_note' => ['nullable', 'string'],
         ]);

@@ -38,10 +38,8 @@ class QuotationController extends Controller
 
         $data = $this->validated($request);
 
-        $quotation = DB::transaction(function () use ($project, $data) {
-            $quotation = $project->quotations()->create($data + [
-                'number' => DocumentNumber::next(Quotation::class, 'QUO'),
-            ]);
+        $quotation = DocumentNumber::assign(Quotation::class, 'QUO', function (string $number) use ($project, $data) {
+            $quotation = $project->quotations()->create($data + ['number' => $number]);
 
             $this->syncItems($quotation, $data['items']);
 

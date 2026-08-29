@@ -146,6 +146,31 @@ class DeliverableTest extends TestCase
             ->assertInertia(fn (AssertableInertia $page) => $page->where('deliverable.version', 4));
     }
 
+    public function test_moving_out_of_approved_clears_the_approval_date(): void
+    {
+        $owner = User::factory()->create();
+        $project = Project::factory()->create(['owner_id' => $owner->id]);
+        $deliverable = Deliverable::factory()->create([
+            'project_id' => $project->id,
+            'status' => 'approved',
+            'approved_at' => now(),
+            'submitted_at' => now()->subDay(),
+        ]);
+
+        $this->actingAs($owner)->put(route('deliverables.update', [$project, $deliverable]), [
+            'title' => $deliverable->title,
+            'type' => $deliverable->type,
+            'version' => $deliverable->version,
+            'status' => 'revision',
+            'review_note' => 'Warna terlalu gelap.',
+        ])->assertRedirect();
+
+        $deliverable->refresh();
+        $this->assertSame('revision', $deliverable->status);
+        $this->assertNull($deliverable->approved_at, 'tanggal disetujui harus ikut hilang');
+        $this->assertNotNull($deliverable->submitted_at);
+    }
+
     public function test_staff_cannot_touch_deliverables_on_someone_elses_project(): void
     {
         $project = Project::factory()->create(['owner_id' => User::factory()->create()->id]);

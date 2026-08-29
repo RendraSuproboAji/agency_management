@@ -22,7 +22,7 @@ FROM ${BASE_REGISTRY}/php:8.4-apache AS runtime
 # composer dengan --no-dev, jadi ext-zip pun tidak diperlukan di runtime.
 RUN a2enmod rewrite headers expires \
     && sed -ri 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/000-default.conf \
-    && printf '<Directory /var/www/html/public>\n    AllowOverride All\n    Require all granted\n</Directory>\n' \
+    && printf '<Directory /var/www/html/public>\n    AllowOverride All\n    Require all granted\n</Directory>\n\n# Berkas unggahan disajikan apa adanya: tanpa handler skrip, tanpa .htaccess,\n# dan tanpa tebak-tebakan tipe konten oleh browser.\n<Directory /var/www/html/public/storage>\n    AllowOverride None\n    Options -ExecCGI -Indexes\n    RemoveHandler .php .phtml .phar .cgi .pl\n    php_flag engine off\n    Header set X-Content-Type-Options "nosniff"\n    Header set Content-Security-Policy "default-src \x27none\x27; sandbox"\n</Directory>\n' \
         > /etc/apache2/conf-available/agency.conf \
     && a2enconf agency
 
