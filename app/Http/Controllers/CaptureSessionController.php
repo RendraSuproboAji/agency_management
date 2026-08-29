@@ -11,6 +11,7 @@ use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -157,7 +158,10 @@ class CaptureSessionController extends Controller
             'location' => ['nullable', 'string', 'max:255'],
             'equipment_note' => ['nullable', 'string'],
             'equipment' => ['nullable', 'array'],
-            'equipment.*' => ['integer', 'exists:equipment,id'],
+            // Aturan exists tidak menyaring arsip, sementara Equipment::whereIn
+            // menyaringnya — tanpa whereNull di sini, alat terarsip lolos
+            // validasi lalu hilang diam-diam dari pemeriksaan bentrok.
+            'equipment.*' => ['integer', Rule::exists('equipment', 'id')->whereNull('deleted_at')],
             'shot_count' => ['nullable', 'integer', 'min:0'],
             'raw_size_gb' => ['nullable', 'numeric', 'min:0'],
             'frame_count' => ['nullable', 'integer', 'min:0'],

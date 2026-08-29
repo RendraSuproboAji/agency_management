@@ -8,22 +8,24 @@ use App\Support\ActivityLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class DeliverableController extends Controller
 {
-    public function create(Request $request, Project $project): View
+    public function create(Request $request, Project $project): Response
     {
         abort_unless($project->isManageableBy($request->user()), 403);
 
-        return view('deliverables.create', [
-            'project' => $project,
-            'deliverable' => new Deliverable([
+        return Inertia::render('Deliverables/Form', [
+            'project' => $project->only(['slug', 'title']),
+            'deliverable' => [
                 'type' => 'splat',
                 'status' => 'draft',
-                'version' => $project->deliverables()->max('version') + 1,
-            ]),
-        ]);
+                // Termasuk yang terarsip: kalau tidak, versi bisa berulang.
+                'version' => $project->deliverables()->withTrashed()->max('version') + 1,
+            ],
+        ] + $this->formOptions());
     }
 
     public function store(Request $request, Project $project): RedirectResponse
@@ -39,14 +41,17 @@ class DeliverableController extends Controller
         return redirect()->route('projects.show', $project)->with('status', 'Deliverable ditambahkan.');
     }
 
-    public function edit(Request $request, Project $project, Deliverable $deliverable): View
+    public function edit(Request $request, Project $project, Deliverable $deliverable): Response
     {
         $this->authorizeDeliverable($request, $project, $deliverable);
 
-        return view('deliverables.edit', [
-            'project' => $project,
-            'deliverable' => $deliverable,
-        ]);
+        return Inertia::render('Deliverables/Form', [
+            'project' => $project->only(['slug', 'title']),
+            'deliverable' => [
+                ...$deliverable->only(['id', 'title', 'type', 'version', 'status', 'external_url', 'review_note']),
+                'file_name' => $deliverable->file_path ? basename($deliverable->file_path) : null,
+            ],
+        ] + $this->formOptions());
     }
 
     public function update(Request $request, Project $project, Deliverable $deliverable): RedirectResponse
@@ -112,6 +117,15 @@ class DeliverableController extends Controller
 
         return redirect()->route('projects.show', $project)
             ->with('status', 'Deliverable diarsipkan. Bisa dipulihkan dari halaman Arsip.');
+    }
+
+    /** @return array<string, mixed> */
+    private function formOptions(): array
+    {
+        return [
+            'types' => Deliverable::TYPES,
+            'statuses' => Deliverable::STATUSES,
+        ];
     }
 
     private function authorizeDeliverable(Request $request, Project $project, Deliverable $deliverable): void

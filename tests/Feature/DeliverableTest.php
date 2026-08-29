@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Inertia\Testing\AssertableInertia;
 use Tests\TestCase;
 
 class DeliverableTest extends TestCase
@@ -115,6 +116,34 @@ class DeliverableTest extends TestCase
         // dibuang saat hapus permanen (lihat ArchiveTest).
         Storage::disk('public')->assertExists('deliverables/scene.ply');
         $this->assertSoftDeleted('deliverables', ['id' => $deliverable->id]);
+    }
+
+    public function test_the_form_pages_render(): void
+    {
+        $owner = User::factory()->create();
+        $project = Project::factory()->create(['owner_id' => $owner->id]);
+        $deliverable = Deliverable::factory()->create(['project_id' => $project->id, 'title' => 'Scene utama']);
+
+        $this->actingAs($owner)->get(route('deliverables.create', $project))
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page->component('Deliverables/Form'));
+
+        $this->actingAs($owner)->get(route('deliverables.edit', [$project, $deliverable]))
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Deliverables/Form')
+                ->where('deliverable.title', 'Scene utama'));
+    }
+
+    public function test_the_next_version_skips_numbers_used_by_archived_deliverables(): void
+    {
+        $owner = User::factory()->create();
+        $project = Project::factory()->create(['owner_id' => $owner->id]);
+        Deliverable::factory()->create(['project_id' => $project->id, 'version' => 3])->delete();
+
+        $this->actingAs($owner)->get(route('deliverables.create', $project))
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page->where('deliverable.version', 4));
     }
 
     public function test_staff_cannot_touch_deliverables_on_someone_elses_project(): void

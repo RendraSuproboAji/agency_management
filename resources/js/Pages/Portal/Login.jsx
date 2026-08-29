@@ -14,11 +14,11 @@ export default function Login() {
                 <p className="mb-4 text-sm text-muted">Pantau progres project dan setujui hasil pekerjaan Anda.</p>
 
                 <Field label="Email" error={errors.email}>
-                    <input type="email" className={inputClass} value={data.email}
+                    <input type="email" name="email" autoComplete="username" className={inputClass} value={data.email}
                            onChange={(e) => setData('email', e.target.value)} required autoFocus />
                 </Field>
                 <Field label="Kata sandi" error={errors.password}>
-                    <input type="password" className={inputClass} value={data.password}
+                    <input type="password" name="password" autoComplete="current-password" className={inputClass} value={data.password}
                            onChange={(e) => setData('password', e.target.value)} required />
                 </Field>
                 <label className="mb-4 flex items-center gap-2 text-xs text-muted">

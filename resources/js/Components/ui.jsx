@@ -47,7 +47,7 @@ export function Panel({ title, actions, children }) {
     );
 }
 
-export function Table({ head, children, empty, colSpan = 1 }) {
+export function Table({ head, children, empty, colSpan = null }) {
     const rows = Array.isArray(children) ? children : [children];
     const isEmpty = rows.filter(Boolean).length === 0;
 
@@ -65,7 +65,7 @@ export function Table({ head, children, empty, colSpan = 1 }) {
                 </thead>
                 <tbody>
                     {isEmpty ? (
-                        <tr><td colSpan={colSpan || head.length} className="px-2 py-3 text-muted">{empty}</td></tr>
+                        <tr><td colSpan={colSpan ?? head.length} className="px-2 py-3 text-muted">{empty}</td></tr>
                     ) : children}
                 </tbody>
             </table>

@@ -64,7 +64,10 @@ class UserController extends Controller
             return back()->withErrors(['role' => 'Minimal harus ada satu admin.'])->withInput();
         }
 
-        if (filled($data['password'])) {
+        // Aturan "nullable" hanya berlaku kalau kuncinya dikirim; permintaan
+        // yang menghilangkan field ini sama sekali dulu melempar
+        // "Undefined array key" alih-alih membiarkan kata sandi lama.
+        if (filled($data['password'] ?? null)) {
             $data['password'] = Hash::make($data['password']);
         } else {
             unset($data['password']);

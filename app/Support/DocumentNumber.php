@@ -17,7 +17,7 @@ class DocumentNumber
         $year ??= (int) date('Y');
         $scope = sprintf('%s/%d/', $prefix, $year);
 
-        $last = $model::query()
+        $last = SoftDeleteAware::query($model)
             ->where('number', 'like', $scope.'%')
             ->orderByDesc('number')
             ->value('number');

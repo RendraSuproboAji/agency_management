@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Attachment;
 use App\Models\Client;
 use App\Models\Deliverable;
 use App\Models\Invoice;
@@ -103,6 +104,59 @@ class ArchiveTest extends TestCase
 
         Storage::disk('public')->assertMissing('deliverables/scene.ply');
         $this->assertDatabaseMissing('deliverables', ['id' => $deliverable->id]);
+    }
+
+    public function test_a_name_freed_by_archiving_can_be_reused(): void
+    {
+        // Indeks unik tidak menyaring baris terarsip, jadi pencarian slug pun
+        // tidak boleh menyaringnya: kalau tidak, INSERT-nya mati.
+        $client = Client::factory()->create(['name' => 'Museum Kota Lama', 'slug' => 'museum-kota-lama']);
+        Archive::archiveClient($client);
+
+        $this->actingAs(User::factory()->create())
+            ->post(route('clients.store'), ['name' => 'Museum Kota Lama', 'status' => 'lead'])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('clients', ['slug' => 'museum-kota-lama-2', 'deleted_at' => null]);
+    }
+
+    public function test_document_numbers_do_not_reuse_an_archived_number(): void
+    {
+        $owner = User::factory()->create();
+        $project = Project::factory()->create(['owner_id' => $owner->id]);
+        $payload = [
+            'issued_at' => now()->toDateString(),
+            'tax_percent' => 11,
+            'status' => 'draft',
+            'items' => [['description' => 'Paket', 'qty' => 1, 'unit' => 'paket', 'unit_price' => 1_000_000]],
+        ];
+
+        $this->actingAs($owner)->post(route('quotations.store', $project), $payload);
+        $project->quotations()->firstOrFail()->delete();
+
+        $this->actingAs($owner)->post(route('quotations.store', $project), $payload)->assertRedirect();
+
+        $numbers = Quotation::withTrashed()->orderBy('id')->pluck('number');
+        $this->assertSame($numbers->unique()->count(), $numbers->count(), 'nomor dokumen tidak boleh berulang');
+    }
+
+    public function test_force_deleting_a_project_removes_every_file_it_owned(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('deliverables/scene.ply', 'x');
+        Storage::disk('public')->put('attachments/kontrak.pdf', 'x');
+
+        $project = Project::factory()->create();
+        Deliverable::factory()->create(['project_id' => $project->id, 'file_path' => 'deliverables/scene.ply']);
+        Attachment::factory()->create(['project_id' => $project->id, 'file_path' => 'attachments/kontrak.pdf']);
+        Archive::archiveProject($project);
+
+        $this->actingAs(User::factory()->admin()->create())
+            ->delete(route('archive.force-delete', ['projects', $project->id]))
+            ->assertRedirect();
+
+        Storage::disk('public')->assertMissing('deliverables/scene.ply');
+        Storage::disk('public')->assertMissing('attachments/kontrak.pdf');
     }
 
     public function test_the_archive_is_admin_only(): void

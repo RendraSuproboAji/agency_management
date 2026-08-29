@@ -19,7 +19,7 @@ class Slug
         $slug = $base;
         $suffix = 2;
 
-        while ($model::query()
+        while (SoftDeleteAware::query($model)
             ->where('slug', $slug)
             ->when($ignoreId, fn ($query) => $query->whereKeyNot($ignoreId))
             ->exists()

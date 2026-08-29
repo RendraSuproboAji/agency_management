@@ -48,7 +48,13 @@ class Invoice extends Model
 
     public function paidAmount(): float
     {
-        return round((float) $this->payments()->sum('amount'), 2);
+        // Pakai relasi yang sudah dimuat bila ada; kalau selalu mengueri ulang,
+        // eager loading di daftar tagihan jadi sia-sia dan berubah jadi N+1.
+        $paid = $this->relationLoaded('payments')
+            ? $this->payments->sum(fn (Payment $payment) => (float) $payment->amount)
+            : (float) $this->payments()->sum('amount');
+
+        return round($paid, 2);
     }
 
     public function outstanding(): float

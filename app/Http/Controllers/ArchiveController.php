@@ -90,19 +90,34 @@ class ArchiveController extends Controller
         $model = $this->resolve($type, $id);
 
         // Hapus permanen ikut membuang berkas fisiknya — tidak ada jalan pulang.
-        if ($model instanceof Deliverable && $model->file_path) {
-            Storage::disk('public')->delete($model->file_path);
-        }
-
-        if ($model instanceof Project) {
-            foreach ($model->attachments()->get() as $attachment) {
-                Storage::disk('public')->delete($attachment->file_path);
-            }
-        }
+        $this->deleteFiles($model);
 
         $model->forceDelete();
 
         return back()->with('status', 'Data dihapus permanen.');
+    }
+
+    /**
+     * Kumpulkan seluruh berkas milik satu record lalu hapus. Untuk project,
+     * turunannya ikut terhapus oleh foreign key, jadi berkas deliverable dan
+     * lampirannya harus dibuang di sini — kalau tidak, keduanya jadi yatim.
+     */
+    private function deleteFiles(mixed $model): void
+    {
+        $paths = match (true) {
+            $model instanceof Deliverable => [$model->file_path],
+            $model instanceof Project => [
+                ...$model->deliverables()->withTrashed()->pluck('file_path'),
+                ...$model->attachments()->pluck('file_path'),
+            ],
+            default => [],
+        };
+
+        $paths = array_filter($paths);
+
+        if ($paths) {
+            Storage::disk('public')->delete($paths);
+        }
     }
 
     private function resolve(string $type, int $id): mixed
