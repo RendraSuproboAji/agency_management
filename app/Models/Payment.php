@@ -5,10 +5,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable(['invoice_id', 'paid_at', 'amount', 'method', 'reference', 'note'])]
 class Payment extends Model
 {
+    use SoftDeletes;
+
     public const METHODS = ['transfer', 'cash', 'other'];
 
     protected function casts(): array

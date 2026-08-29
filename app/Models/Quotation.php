@@ -8,12 +8,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable(['project_id', 'number', 'issued_at', 'valid_until', 'tax_percent', 'status', 'notes'])]
 class Quotation extends Model
 {
     /** @use HasFactory<QuotationFactory> */
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     public const STATUSES = ['draft', 'sent', 'accepted', 'rejected'];
 

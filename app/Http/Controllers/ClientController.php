@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Client;
+use App\Support\ActivityLogger;
+use App\Support\Archive;
 use App\Support\Slug;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -74,9 +76,12 @@ class ClientController extends Controller
     {
         abort_unless($request->user()->isAdmin(), 403);
 
-        $client->delete();
+        Archive::archiveClient($client);
 
-        return redirect()->route('clients.index')->with('status', 'Klien dihapus beserta project-nya.');
+        ActivityLogger::log($client, 'client.archived', 'Mengarsipkan klien "'.$client->name.'" beserta project-nya.');
+
+        return redirect()->route('clients.index')
+            ->with('status', 'Klien diarsipkan beserta project-nya. Bisa dipulihkan dari halaman Arsip.');
     }
 
     /** @return array<string, mixed> */

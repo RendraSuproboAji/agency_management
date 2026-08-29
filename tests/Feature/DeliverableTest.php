@@ -95,7 +95,7 @@ class DeliverableTest extends TestCase
         $this->assertSame('Warna terlalu gelap.', $deliverable->review_note);
     }
 
-    public function test_deleting_a_deliverable_removes_its_file(): void
+    public function test_deleting_a_deliverable_archives_it_and_keeps_the_file(): void
     {
         Storage::fake('public');
 
@@ -111,8 +111,10 @@ class DeliverableTest extends TestCase
             ->delete(route('deliverables.destroy', [$project, $deliverable]))
             ->assertRedirect();
 
-        Storage::disk('public')->assertMissing('deliverables/scene.ply');
-        $this->assertDatabaseMissing('deliverables', ['id' => $deliverable->id]);
+        // Berkas tetap ada supaya arsip bisa dipulihkan utuh; berkas baru
+        // dibuang saat hapus permanen (lihat ArchiveTest).
+        Storage::disk('public')->assertExists('deliverables/scene.ply');
+        $this->assertSoftDeleted('deliverables', ['id' => $deliverable->id]);
     }
 
     public function test_staff_cannot_touch_deliverables_on_someone_elses_project(): void

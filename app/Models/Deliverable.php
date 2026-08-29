@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 
 #[Fillable([
@@ -16,7 +17,7 @@ use Illuminate\Support\Facades\Storage;
 class Deliverable extends Model
 {
     /** @use HasFactory<DeliverableFactory> */
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     public const TYPES = ['splat', 'mesh', 'panorama', 'video', 'floorplan', 'other'];
 

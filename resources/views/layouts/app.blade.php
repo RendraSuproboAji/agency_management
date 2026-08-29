@@ -45,6 +45,7 @@
         <a href="{{ route('sessions.index') }}" @class(['active' => str_starts_with((string) $current, 'sessions.')])>Sesi Capture</a>
         @if (auth()->user()->isAdmin())
             <a href="{{ route('users.index') }}" @class(['active' => str_starts_with((string) $current, 'users.')])>Pengguna</a>
+            <a href="{{ route('archive.index') }}" @class(['active' => str_starts_with((string) $current, 'archive.')])>Arsip</a>
         @endif
     </nav>
 

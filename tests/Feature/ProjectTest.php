@@ -90,7 +90,7 @@ class ProjectTest extends TestCase
             ->delete(route('projects.destroy', $project))
             ->assertRedirect(route('projects.index'));
 
-        $this->assertDatabaseMissing('projects', ['id' => $project->id]);
+        $this->assertSoftDeleted('projects', ['id' => $project->id]);
     }
 
     public function test_the_project_list_can_be_filtered_by_status(): void

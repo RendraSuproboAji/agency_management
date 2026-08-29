@@ -6,6 +6,7 @@ use App\Models\Client;
 use App\Models\Project;
 use App\Models\User;
 use App\Support\ActivityLogger;
+use App\Support\Archive;
 use App\Support\Slug;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -122,9 +123,12 @@ class ProjectController extends Controller
     {
         abort_unless($request->user()->isAdmin(), 403);
 
-        $project->delete();
+        Archive::archiveProject($project);
 
-        return redirect()->route('projects.index')->with('status', 'Project dihapus.');
+        ActivityLogger::log($project, 'project.archived', 'Mengarsipkan project "'.$project->title.'".');
+
+        return redirect()->route('projects.index')
+            ->with('status', 'Project diarsipkan. Bisa dipulihkan dari halaman Arsip.');
     }
 
     /** @return array<string, mixed> */

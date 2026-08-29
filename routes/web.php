@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ArchiveController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CaptureSessionController;
@@ -128,8 +129,12 @@ Route::middleware('auth:web')->group(function () {
     Route::post('/projects/{project}/invoices/{invoice}/payments', [PaymentController::class, 'store'])->name('payments.store');
     Route::delete('/projects/{project}/invoices/{invoice}/payments/{payment}', [PaymentController::class, 'destroy'])->name('payments.destroy');
 
-    // Kelola pengguna (admin saja)
+    // Kelola pengguna & arsip (admin saja)
     Route::middleware('admin')->group(function () {
+        Route::get('/archive', [ArchiveController::class, 'index'])->name('archive.index');
+        Route::put('/archive/{type}/{id}/restore', [ArchiveController::class, 'restore'])->name('archive.restore');
+        Route::delete('/archive/{type}/{id}', [ArchiveController::class, 'forceDelete'])->name('archive.force-delete');
+
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
         Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
         Route::post('/users', [UserController::class, 'store'])->name('users.store');

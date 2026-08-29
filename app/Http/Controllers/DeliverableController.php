@@ -106,10 +106,12 @@ class DeliverableController extends Controller
     {
         $this->authorizeDeliverable($request, $project, $deliverable);
 
-        $this->deleteFile($deliverable);
+        // Berkas sengaja dipertahankan: arsip harus bisa dipulihkan utuh.
+        // Berkas baru dibuang saat hapus permanen dari halaman Arsip.
         $deliverable->delete();
 
-        return redirect()->route('projects.show', $project)->with('status', 'Deliverable dihapus.');
+        return redirect()->route('projects.show', $project)
+            ->with('status', 'Deliverable diarsipkan. Bisa dipulihkan dari halaman Arsip.');
     }
 
     private function authorizeDeliverable(Request $request, Project $project, Deliverable $deliverable): void
