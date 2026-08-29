@@ -10,11 +10,12 @@ use App\Support\Slug;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class ServiceRequestController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request): Response
     {
         $requests = ServiceRequest::query()
             ->with('convertedProject')
@@ -24,17 +25,32 @@ class ServiceRequestController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        return view('requests.index', [
+        $requests->through(fn (ServiceRequest $item) => [
+            ...$item->only(['id', 'name', 'company', 'email', 'status', 'site_location']),
+            'service_type' => str_replace('_', ' ', $item->service_type),
+            'created_at' => $item->created_at->format('d M Y'),
+        ]);
+
+        return Inertia::render('Requests/Index', [
             'requests' => $requests,
             'filters' => $request->only(['q', 'status']),
+            'statuses' => ServiceRequest::STATUSES,
         ]);
     }
 
-    public function show(ServiceRequest $serviceRequest): View
+    public function show(ServiceRequest $serviceRequest): Response
     {
-        return view('requests.show', [
-            'serviceRequest' => $serviceRequest->load('convertedProject'),
-            'clients' => Client::orderBy('name')->get(),
+        $serviceRequest->load('convertedProject');
+
+        return Inertia::render('Requests/Show', [
+            'serviceRequest' => [
+                ...$serviceRequest->only(['id', 'name', 'company', 'email', 'phone', 'status', 'site_location', 'area_sqm', 'message']),
+                'service_type' => str_replace('_', ' ', $serviceRequest->service_type),
+                'created_at' => $serviceRequest->created_at->format('d M Y H:i'),
+                'converted_project' => $serviceRequest->convertedProject?->only(['slug', 'title']),
+            ],
+            'clients' => Client::orderBy('name')->get(['id', 'name']),
+            'statuses' => ServiceRequest::STATUSES,
         ]);
     }
 

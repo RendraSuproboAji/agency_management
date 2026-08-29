@@ -7,6 +7,7 @@ use App\Models\Project;
 use App\Models\Quotation;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia;
 use Tests\TestCase;
 
 class InvoiceTest extends TestCase
@@ -42,7 +43,10 @@ class InvoiceTest extends TestCase
         $this->actingAs($owner)
             ->get(route('invoices.create', [$project, 'quotation' => $quotation->id]))
             ->assertOk()
-            ->assertSee('22000000');
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Invoices/Form')
+                ->where('invoice.amount', 22_000_000)
+                ->where('fromQuotation', $quotation->number));
     }
 
     public function test_an_invoice_cannot_reference_a_quotation_from_another_project(): void
@@ -92,7 +96,9 @@ class InvoiceTest extends TestCase
         $this->actingAs(User::factory()->create())
             ->get(route('invoices.index', ['unsettled' => 1]))
             ->assertOk()
-            ->assertSee('INV/2026/0001')
-            ->assertDontSee('INV/2026/0002');
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Invoices/Index')
+                ->has('invoices.data', 1)
+                ->where('invoices.data.0.number', 'INV/2026/0001'));
     }
 }

@@ -11,12 +11,13 @@ use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class CaptureSessionController extends Controller
 {
     /** Agenda pengambilan gambar lintas project. */
-    public function index(Request $request): View
+    public function index(Request $request): Response
     {
         $sessions = CaptureSession::query()
             ->with(['project.client', 'crew', 'equipment'])
@@ -26,22 +27,35 @@ class CaptureSessionController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        return view('sessions.index', [
+        $sessions->through(fn (CaptureSession $session) => [
+            ...$session->only(['id', 'status', 'location']),
+            'scheduled_at' => $session->scheduled_at->format('d M Y H:i'),
+            'project_title' => $session->project->title,
+            'project_slug' => $session->project->slug,
+            'client_name' => $session->project->client->name,
+            'crew_name' => $session->crew?->name,
+            'equipment' => $session->equipment->pluck('name')->join(', '),
+        ]);
+
+        return Inertia::render('Sessions/Index', [
             'sessions' => $sessions,
             'filters' => $request->only(['status', 'mine']),
+            'statuses' => CaptureSession::STATUSES,
         ]);
     }
 
-    public function create(Request $request, Project $project): View
+    public function create(Request $request, Project $project): Response
     {
         abort_unless($project->isManageableBy($request->user()), 403);
 
-        return view('sessions.create', [
-            'project' => $project,
-            'session' => new CaptureSession(['status' => 'scheduled', 'location' => $project->site_location]),
-            'crew' => User::orderBy('name')->get(),
-            'equipment' => Equipment::available()->orderBy('name')->get(),
-        ]);
+        return Inertia::render('Sessions/Form', [
+            'project' => $project->only(['slug', 'title']),
+            'session' => [
+                'status' => 'scheduled',
+                'location' => $project->site_location,
+                'equipment' => [],
+            ],
+        ] + $this->formOptions());
     }
 
     public function store(Request $request, Project $project): RedirectResponse
@@ -55,16 +69,23 @@ class CaptureSessionController extends Controller
         return redirect()->route('projects.show', $project)->with('status', 'Sesi pengambilan gambar dijadwalkan.');
     }
 
-    public function edit(Request $request, Project $project, CaptureSession $session): View
+    public function edit(Request $request, Project $project, CaptureSession $session): Response
     {
         $this->authorizeSession($request, $project, $session);
 
-        return view('sessions.edit', [
-            'project' => $project,
-            'session' => $session->load('equipment'),
-            'crew' => User::orderBy('name')->get(),
-            'equipment' => Equipment::available()->orderBy('name')->get(),
-        ]);
+        $session->load('equipment');
+
+        return Inertia::render('Sessions/Form', [
+            'project' => $project->only(['slug', 'title']),
+            'session' => [
+                ...$session->only([
+                    'id', 'crew_id', 'status', 'location', 'equipment_note',
+                    'shot_count', 'raw_size_gb', 'frame_count', 'backup_location', 'weather_note', 'notes',
+                ]),
+                'scheduled_at' => $session->scheduled_at->format('Y-m-d\\TH:i'),
+                'equipment' => $session->equipment->pluck('id'),
+            ],
+        ] + $this->formOptions());
     }
 
     public function update(Request $request, Project $project, CaptureSession $session): RedirectResponse
@@ -109,6 +130,16 @@ class CaptureSessionController extends Controller
         $session->delete();
 
         return redirect()->route('projects.show', $project)->with('status', 'Sesi dihapus.');
+    }
+
+    /** @return array<string, mixed> */
+    private function formOptions(): array
+    {
+        return [
+            'crew' => User::orderBy('name')->get(['id', 'name']),
+            'equipment' => Equipment::available()->orderBy('name')->get(['id', 'name', 'code', 'category']),
+            'statuses' => CaptureSession::STATUSES,
+        ];
     }
 
     private function authorizeSession(Request $request, Project $project, CaptureSession $session): void

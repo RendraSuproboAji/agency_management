@@ -11,8 +11,10 @@ use App\Models\Quotation;
 use App\Support\ActivityLogger;
 use App\Support\Archive;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class ArchiveController extends Controller
 {
@@ -26,16 +28,46 @@ class ArchiveController extends Controller
         'equipment' => Equipment::class,
     ];
 
-    public function index(): View
+    public function index(): Response
     {
-        return view('archive.index', [
-            'clients' => Client::onlyTrashed()->latest('deleted_at')->get(),
-            'projects' => Project::onlyTrashed()->with('client')->latest('deleted_at')->get(),
-            'quotations' => Quotation::onlyTrashed()->with('project')->latest('deleted_at')->get(),
-            'invoices' => Invoice::onlyTrashed()->with('project')->latest('deleted_at')->get(),
-            'deliverables' => Deliverable::onlyTrashed()->with('project')->latest('deleted_at')->get(),
-            'equipment' => Equipment::onlyTrashed()->latest('deleted_at')->get(),
+        return Inertia::render('Archive/Index', [
+            'groups' => [
+                $this->group('clients', 'Klien', Client::onlyTrashed()->latest('deleted_at')->get(),
+                    fn ($item) => [$item->name, null]),
+                $this->group('projects', 'Project', Project::onlyTrashed()->with('client')->latest('deleted_at')->get(),
+                    fn ($item) => [$item->title, $item->client?->name]),
+                $this->group('quotations', 'Penawaran', Quotation::onlyTrashed()->with('project')->latest('deleted_at')->get(),
+                    fn ($item) => [$item->number, $item->project?->title]),
+                $this->group('invoices', 'Invoice', Invoice::onlyTrashed()->with('project')->latest('deleted_at')->get(),
+                    fn ($item) => [$item->number, $item->project?->title]),
+                $this->group('deliverables', 'Deliverable', Deliverable::onlyTrashed()->with('project')->latest('deleted_at')->get(),
+                    fn ($item) => [$item->title.' v'.$item->version, $item->project?->title]),
+                $this->group('equipment', 'Peralatan', Equipment::onlyTrashed()->latest('deleted_at')->get(),
+                    fn ($item) => [$item->name, $item->code]),
+            ],
         ]);
+    }
+
+    /**
+     * @param  Collection<int, mixed>  $items
+     * @return array<string, mixed>
+     */
+    private function group(string $type, string $label, $items, callable $describe): array
+    {
+        return [
+            'type' => $type,
+            'label' => $label,
+            'items' => $items->map(function ($item) use ($describe) {
+                [$title, $meta] = $describe($item);
+
+                return [
+                    'id' => $item->id,
+                    'label' => $title,
+                    'meta' => $meta,
+                    'deleted_at' => $item->deleted_at->format('d M Y H:i'),
+                ];
+            })->values(),
+        ];
     }
 
     public function restore(string $type, int $id): RedirectResponse

@@ -8,24 +8,35 @@ use App\Models\Project;
 use App\Support\ActivityLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class PaymentController extends Controller
 {
     /** Rekap pembayaran & piutang lintas project. */
-    public function index(Request $request): View
+    public function index(Request $request): Response
     {
         $invoices = Invoice::query()
-            ->with('project.client')
+            ->with('project.client', 'payments')
             ->when($request->query('status'), fn ($query, $status) => $query->where('status', $status))
             ->when($request->boolean('unsettled'), fn ($query) => $query->unsettled())
             ->orderByRaw('due_at is null, due_at asc')
             ->paginate(20)
             ->withQueryString();
 
-        return view('invoices.index', [
+        $invoices->through(fn (Invoice $invoice) => [
+            ...$invoice->only(['id', 'number', 'status', 'amount']),
+            'due_at' => $invoice->due_at?->format('d M Y'),
+            'outstanding' => $invoice->outstanding(),
+            'project_title' => $invoice->project->title,
+            'project_slug' => $invoice->project->slug,
+            'client_name' => $invoice->project->client->name,
+        ]);
+
+        return Inertia::render('Invoices/Index', [
             'invoices' => $invoices,
             'filters' => $request->only(['status', 'unsettled']),
+            'statuses' => Invoice::STATUSES,
         ]);
     }
 

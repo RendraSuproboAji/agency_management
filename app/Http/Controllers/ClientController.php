@@ -8,11 +8,12 @@ use App\Support\Archive;
 use App\Support\Slug;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class ClientController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request): Response
     {
         $clients = Client::query()
             ->search($request->query('q'))
@@ -22,16 +23,19 @@ class ClientController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        return view('clients.index', [
+        return Inertia::render('Clients/Index', [
             'clients' => $clients,
-            'q' => $request->query('q'),
-            'status' => $request->query('status'),
+            'filters' => $request->only(['q', 'status']),
+            'statuses' => Client::STATUSES,
         ]);
     }
 
-    public function create(): View
+    public function create(): Response
     {
-        return view('clients.create', ['client' => new Client(['status' => 'lead'])]);
+        return Inertia::render('Clients/Form', [
+            'client' => new Client(['status' => 'lead']),
+            'statuses' => Client::STATUSES,
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -44,16 +48,28 @@ class ClientController extends Controller
         return redirect()->route('clients.show', $client)->with('status', 'Klien berhasil ditambahkan.');
     }
 
-    public function show(Client $client): View
+    public function show(Client $client): Response
     {
         $client->load(['projects' => fn ($query) => $query->latest()]);
 
-        return view('clients.show', ['client' => $client]);
+        return Inertia::render('Clients/Show', [
+            'client' => [
+                ...$client->only(['id', 'slug', 'name', 'status', 'contact_name', 'email', 'phone', 'industry', 'address', 'notes', 'portal_enabled']),
+                'projects' => $client->projects->map(fn ($project) => [
+                    ...$project->only(['id', 'slug', 'title', 'status']),
+                    'service_type' => str_replace('_', ' ', $project->service_type),
+                    'deadline' => $project->deadline?->format('d M Y'),
+                ]),
+            ],
+        ]);
     }
 
-    public function edit(Client $client): View
+    public function edit(Client $client): Response
     {
-        return view('clients.edit', ['client' => $client]);
+        return Inertia::render('Clients/Form', [
+            'client' => $client,
+            'statuses' => Client::STATUSES,
+        ]);
     }
 
     public function update(Request $request, Client $client): RedirectResponse

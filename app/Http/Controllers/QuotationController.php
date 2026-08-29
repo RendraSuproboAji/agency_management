@@ -10,21 +10,25 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class QuotationController extends Controller
 {
-    public function create(Request $request, Project $project): View
+    public function create(Request $request, Project $project): Response
     {
         abort_unless($project->isManageableBy($request->user()), 403);
 
-        return view('quotations.create', [
-            'project' => $project,
-            'quotation' => new Quotation([
+        return Inertia::render('Quotations/Form', [
+            'project' => $project->only(['slug', 'title']),
+            'quotation' => [
                 'issued_at' => now()->toDateString(),
                 'valid_until' => now()->addDays(14)->toDateString(),
                 'status' => 'draft',
                 'tax_percent' => 11,
-            ]),
+                'items' => [],
+            ],
+            'statuses' => Quotation::STATUSES,
         ]);
     }
 
@@ -48,13 +52,28 @@ class QuotationController extends Controller
             ->with('status', 'Penawaran '.$quotation->number.' dibuat.');
     }
 
-    public function show(Project $project, Quotation $quotation): View
+    public function show(Request $request, Project $project, Quotation $quotation): Response
     {
         abort_unless($quotation->project_id === $project->id, 404);
 
-        return view('quotations.show', [
-            'project' => $project,
-            'quotation' => $quotation->load('items', 'invoices'),
+        $quotation->load('items', 'invoices');
+
+        return Inertia::render('Quotations/Show', [
+            'project' => $project->only(['slug', 'title']),
+            'quotation' => [
+                ...$quotation->only(['id', 'number', 'status', 'notes', 'tax_percent']),
+                'issued_at' => $quotation->issued_at->format('d M Y'),
+                'valid_until' => $quotation->valid_until?->format('d M Y'),
+                'subtotal' => $quotation->subtotal(),
+                'tax_amount' => $quotation->taxAmount(),
+                'total' => $quotation->total(),
+                'items' => $quotation->items->map(fn ($item) => [
+                    ...$item->only(['id', 'description', 'qty', 'unit', 'unit_price']),
+                    'line_total' => $item->lineTotal(),
+                ]),
+                'invoices' => $quotation->invoices->map(fn ($invoice) => $invoice->only(['id', 'number', 'status', 'amount'])),
+            ],
+            'canManage' => $project->isManageableBy($request->user()),
         ]);
     }
 
@@ -69,13 +88,21 @@ class QuotationController extends Controller
         ]);
     }
 
-    public function edit(Request $request, Project $project, Quotation $quotation): View
+    public function edit(Request $request, Project $project, Quotation $quotation): Response
     {
         $this->authorizeQuotation($request, $project, $quotation);
 
-        return view('quotations.edit', [
-            'project' => $project,
-            'quotation' => $quotation->load('items'),
+        $quotation->load('items');
+
+        return Inertia::render('Quotations/Form', [
+            'project' => $project->only(['slug', 'title']),
+            'quotation' => [
+                ...$quotation->only(['id', 'number', 'status', 'notes', 'tax_percent']),
+                'issued_at' => $quotation->issued_at->format('Y-m-d'),
+                'valid_until' => $quotation->valid_until?->format('Y-m-d'),
+                'items' => $quotation->items->map(fn ($item) => $item->only(['description', 'qty', 'unit', 'unit_price'])),
+            ],
+            'statuses' => Quotation::STATUSES,
         ]);
     }
 

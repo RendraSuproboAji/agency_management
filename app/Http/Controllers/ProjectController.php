@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Attachment;
 use App\Models\Client;
+use App\Models\ProcessingJob;
 use App\Models\Project;
 use App\Models\User;
 use App\Support\ActivityLogger;
@@ -10,11 +12,12 @@ use App\Support\Archive;
 use App\Support\Slug;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class ProjectController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request): Response
     {
         $projects = Project::query()
             ->with(['client', 'owner'])
@@ -27,17 +30,26 @@ class ProjectController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        return view('projects.index', [
+        $projects->through(fn (Project $project) => [
+            ...$project->only(['id', 'slug', 'title', 'status']),
+            'service_type' => str_replace('_', ' ', $project->service_type),
+            'client_name' => $project->client->name,
+            'client_slug' => $project->client->slug,
+            'owner_name' => $project->owner?->name,
+            'deadline' => $project->deadline?->format('d M Y'),
+        ]);
+
+        return Inertia::render('Projects/Index', [
             'projects' => $projects,
-            'clients' => Client::orderBy('name')->get(),
-            'owners' => User::orderBy('name')->get(),
+            'clients' => Client::orderBy('name')->get(['id', 'slug', 'name']),
             'filters' => $request->only(['q', 'status', 'client', 'owner', 'mine']),
+            'statuses' => Project::STATUSES,
         ]);
     }
 
-    public function create(Request $request): View
+    public function create(Request $request): Response
     {
-        return view('projects.create', [
+        return Inertia::render('Projects/Form', [
             'project' => new Project([
                 'status' => 'lead',
                 'service_type' => 'gaussian_splatting',
@@ -57,7 +69,7 @@ class ProjectController extends Controller
         return redirect()->route('projects.show', $project)->with('status', 'Project berhasil dibuat.');
     }
 
-    public function show(Project $project): View
+    public function show(Request $request, Project $project): Response
     {
         $project->load([
             'client',
@@ -74,20 +86,90 @@ class ProjectController extends Controller
 
         $billed = $project->invoices->sum(fn ($invoice) => (float) $invoice->amount);
 
-        return view('projects.show', [
-            'project' => $project,
-            'crew' => User::orderBy('name')->get(),
+        $user = $request->user();
+
+        return Inertia::render('Projects/Show', [
+            'project' => [
+                ...$project->only(['id', 'slug', 'title', 'status', 'brief', 'site_location', 'area_sqm', 'budget', 'gallery_url']),
+                'service_type' => str_replace('_', ' ', $project->service_type),
+                'client_name' => $project->client->name,
+                'client_slug' => $project->client->slug,
+                'owner_name' => $project->owner?->name,
+                'deadline' => $project->deadline?->format('d M Y'),
+                'capture_sessions' => $project->captureSessions->map(fn ($session) => [
+                    ...$session->only(['id', 'status', 'location', 'shot_count']),
+                    'scheduled_at' => $session->scheduled_at->format('d M Y H:i'),
+                    'crew_name' => $session->crew?->name,
+                    'equipment' => $session->equipment->pluck('name')->join(', '),
+                ]),
+                'deliverables' => $project->deliverables->map(fn ($deliverable) => [
+                    ...$deliverable->only(['id', 'title', 'type', 'version', 'status', 'review_note']),
+                    'url' => $deliverable->url(),
+                ]),
+                'quotations' => $project->quotations->map(fn ($quotation) => [
+                    'kind' => 'quotation',
+                    'id' => $quotation->id,
+                    'number' => $quotation->number,
+                    'status' => $quotation->status,
+                    'issued_at' => $quotation->issued_at->format('d M Y'),
+                    'amount' => $quotation->total(),
+                ]),
+                'invoices' => $project->invoices->map(fn ($invoice) => [
+                    'kind' => 'invoice',
+                    'id' => $invoice->id,
+                    'number' => $invoice->number,
+                    'status' => $invoice->status,
+                    'issued_at' => $invoice->issued_at->format('d M Y'),
+                    'amount' => (float) $invoice->amount,
+                    'outstanding' => $invoice->outstanding(),
+                ]),
+                'processing_jobs' => $project->processingJobs->map(fn ($job) => [
+                    ...$job->only(['id', 'status', 'machine', 'notes', 'output_size_gb']),
+                    'kind' => str_replace('_', ' ', $job->kind),
+                    'duration' => $job->humanDuration(),
+                    'session' => $job->captureSession?->scheduled_at->format('d M Y'),
+                ]),
+                'attachments' => $project->attachments->map(fn ($attachment) => [
+                    ...$attachment->only(['id', 'title', 'category']),
+                    'size' => $attachment->humanSize(),
+                    'uploader' => $attachment->uploader?->name,
+                    'created_at' => $attachment->created_at->format('d M Y'),
+                ]),
+                'notes' => $project->notes->map(fn ($note) => [
+                    'id' => $note->id,
+                    'body' => $note->body,
+                    'author' => $note->author?->name ?: 'Pengguna terhapus',
+                    'created_at' => $note->created_at->diffForHumans(),
+                    'can_delete' => $note->user_id === $user->id || $user->isAdmin(),
+                ]),
+                'activities' => $project->activities->map(fn ($activity) => [
+                    'id' => $activity->id,
+                    'description' => $activity->description,
+                    'actor' => $activity->actorName(),
+                    'created_at' => $activity->created_at->format('d M Y H:i'),
+                ]),
+            ],
+            'canManage' => $project->isManageableBy($user),
+            'statuses' => Project::STATUSES,
+            'jobKinds' => ProcessingJob::KINDS,
+            'jobStatuses' => ProcessingJob::STATUSES,
+            'attachmentCategories' => Attachment::CATEGORIES,
             'billed' => $billed,
             'paid' => $project->invoices->sum(fn ($invoice) => $invoice->paidAmount()),
-            'rawSizeGb' => $project->captureSessions->sum(fn ($session) => (float) $session->raw_size_gb),
+            'rawSizeGb' => number_format($project->captureSessions->sum(fn ($session) => (float) $session->raw_size_gb), 2, ',', '.'),
         ]);
     }
 
-    public function edit(Request $request, Project $project): View
+    public function edit(Request $request, Project $project): Response
     {
         abort_unless($project->isManageableBy($request->user()), 403);
 
-        return view('projects.edit', ['project' => $project] + $this->formOptions());
+        return Inertia::render('Projects/Form', [
+            'project' => [
+                ...$project->only(['id', 'slug', 'title', 'client_id', 'owner_id', 'service_type', 'status', 'budget', 'site_location', 'area_sqm', 'gallery_url', 'brief']),
+                'deadline' => $project->deadline?->format('Y-m-d'),
+            ],
+        ] + $this->formOptions());
     }
 
     public function update(Request $request, Project $project): RedirectResponse
@@ -135,8 +217,10 @@ class ProjectController extends Controller
     private function formOptions(): array
     {
         return [
-            'clients' => Client::orderBy('name')->get(),
-            'owners' => User::orderBy('name')->get(),
+            'clients' => Client::orderBy('name')->get(['id', 'name']),
+            'owners' => User::orderBy('name')->get(['id', 'name']),
+            'statuses' => Project::STATUSES,
+            'serviceTypes' => Project::SERVICE_TYPES,
         ];
     }
 

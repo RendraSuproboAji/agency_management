@@ -9,6 +9,7 @@ use App\Models\Note;
 use App\Models\Project;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia;
 use Tests\TestCase;
 
 class PortalProjectTest extends TestCase
@@ -23,8 +24,10 @@ class PortalProjectTest extends TestCase
 
         $this->actingAs($client, 'client')->get(route('portal.dashboard'))
             ->assertOk()
-            ->assertSee('Tur Showroom Saya')
-            ->assertDontSee('Tur Milik Klien Lain');
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Portal/Dashboard')
+                ->has('projects', 1)
+                ->where('projects.0.title', 'Tur Showroom Saya'));
 
         $this->actingAs($client, 'client')->get(route('portal.projects.show', $mine))->assertOk();
         $this->actingAs($client, 'client')->get(route('portal.projects.show', $theirs))->assertNotFound();
@@ -41,13 +44,18 @@ class PortalProjectTest extends TestCase
             'status' => 'draft',
         ]);
 
-        $response = $this->actingAs($client, 'client')->get(route('portal.projects.show', $project));
-
-        $response->assertOk()
+        $this->actingAs($client, 'client')
+            ->get(route('portal.projects.show', $project))
+            ->assertOk()
+            // Bukan sekadar tidak tampil: datanya memang tidak pernah dikirim.
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Portal/Project')
+                ->missing('project.notes')
+                ->missing('project.activities')
+                ->missing('project.attachments')
+                ->has('project.documents', 0))
             ->assertDontSee('Margin proyek ini tipis.')
-            ->assertDontSee('Catatan internal')
-            ->assertDontSee('Riwayat aktivitas')
-            ->assertDontSee('INV/2026/0009');
+            ->assertDontSee('INV\\/2026\\/0009');
     }
 
     public function test_a_client_can_approve_a_submitted_deliverable(): void
