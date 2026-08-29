@@ -35,5 +35,31 @@ services:
       retries: 5
     restart: unless-stopped
 
+  # Scheduler terpisah supaya container Apache tetap satu proses.
+  scheduler:
+    build:
+      context: .
+      args:
+        BASE_REGISTRY: ${BASE_REGISTRY:-docker.io}
+    command: php artisan schedule:work
+    environment:
+      APP_NAME: "Agency Management"
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_KEY: "${APP_KEY:-}"
+      LOG_CHANNEL: stderr
+      DB_CONNECTION: sqlite
+      DB_DATABASE: /var/www/html/storage/database/database.sqlite
+      CACHE_STORE: database
+      QUEUE_CONNECTION: database
+      FILESYSTEM_DISK: local
+      SEED_DEMO: "false"
+    volumes:
+      - agency-storage:/var/www/html/storage
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   agency-storage:
