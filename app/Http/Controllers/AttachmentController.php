@@ -46,6 +46,9 @@ class AttachmentController extends Controller
     public function download(Request $request, Project $project, Attachment $attachment): StreamedResponse
     {
         abort_unless($attachment->project_id === $project->id, 404);
+        // Lampiran berisi kontrak dan denah; unduhnya harus menuntut hak yang
+        // sama dengan mengunggah atau menghapusnya.
+        abort_unless($project->isManageableBy($request->user()), 403);
         abort_unless(Storage::disk('local')->exists($attachment->file_path), 404);
 
         // Nama tersimpan berupa hash acak; yang diunduh pengguna harus memakai

@@ -107,4 +107,24 @@ class BackupTest extends TestCase
     {
         $this->artisan('backup:restore', ['stamp' => 'tidak-ada', '--force' => true])->assertFailed();
     }
+
+    public function test_private_attachments_are_included_and_restored(): void
+    {
+        // Lampiran (kontrak, denah) hidup di disk privat sejak dikeraskan.
+        // Sebelum perbaikan ini backup hanya menyalin disk publik, jadi tidak
+        // satu pun kontrak pernah masuk arsip backup.
+        File::ensureDirectoryExists(storage_path('app/private/attachments'));
+        File::put(storage_path('app/private/attachments/kontrak.pdf'), 'isi-kontrak');
+
+        $this->artisan('backup:run')->assertSuccessful();
+
+        $stamp = basename(File::directories(storage_path('backups'))[0]);
+        $this->assertFileExists(storage_path('backups/'.$stamp.'/private/attachments/kontrak.pdf'));
+
+        File::delete(storage_path('app/private/attachments/kontrak.pdf'));
+
+        $this->artisan('backup:restore', ['stamp' => $stamp, '--force' => true])->assertSuccessful();
+
+        $this->assertSame('isi-kontrak', File::get(storage_path('app/private/attachments/kontrak.pdf')));
+    }
 }

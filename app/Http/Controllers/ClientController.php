@@ -8,6 +8,7 @@ use App\Support\Archive;
 use App\Support\Slug;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -43,6 +44,7 @@ class ClientController extends Controller
     {
         $data = $this->validated($request);
         $data['slug'] = Slug::uniqueFor(Client::class, $data['name']);
+        $data = $this->withPortalCredentials($request, $data);
 
         $client = Client::create($data);
 
@@ -75,14 +77,9 @@ class ClientController extends Controller
 
     public function update(Request $request, Client $client): RedirectResponse
     {
-        $data = $this->validated($request);
+        $data = $this->validated($request, $client);
         $data['slug'] = Slug::uniqueFor(Client::class, $data['name'], $client->id);
-        $data['portal_enabled'] = $request->boolean('portal_enabled');
-
-        // Kata sandi portal hanya ditulis ulang bila diisi.
-        if (blank($data['password'] ?? null)) {
-            unset($data['password']);
-        }
+        $data = $this->withPortalCredentials($request, $data, $client);
 
         $client->update($data);
 
@@ -101,13 +98,52 @@ class ClientController extends Controller
             ->with('status', 'Klien diarsipkan beserta project-nya. Bisa dipulihkan dari halaman Arsip.');
     }
 
+    /**
+     * Kredensial portal hanya boleh disentuh admin.
+     *
+     * Menyalakan portal dan menyetel kata sandinya sama dengan mencetak kunci
+     * ke seluruh data satu klien; tanpa gerbang ini staf mana pun bisa
+     * membuatkan dirinya akun portal milik klien lain, tanpa jejak yang jelas.
+     * Kolomnya sengaja tidak ada di form staf, jadi permintaan yang membawanya
+     * ditolak alih-alih diabaikan diam-diam.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function withPortalCredentials(Request $request, array $data, ?Client $client = null): array
+    {
+        $wantsPortalChange = filled($data['password'] ?? null)
+            || $request->boolean('portal_enabled') !== (bool) ($client?->portal_enabled ?? false);
+
+        if ($wantsPortalChange) {
+            abort_unless($request->user()->isAdmin(), 403);
+        }
+
+        if (blank($data['password'] ?? null)) {
+            unset($data['password']);
+        }
+
+        if ($request->user()->isAdmin()) {
+            $data['portal_enabled'] = $request->boolean('portal_enabled');
+        } else {
+            unset($data['portal_enabled']);
+        }
+
+        return $data;
+    }
+
     /** @return array<string, mixed> */
-    private function validated(Request $request): array
+    private function validated(Request $request, ?Client $client = null): array
     {
         return $request->validate([
             'name' => ['required', 'string', 'max:150'],
             'contact_name' => ['nullable', 'string', 'max:150'],
-            'email' => ['nullable', 'email', 'max:150'],
+            // Email adalah identitas masuk portal, jadi harus unik — dua
+            // klien beremail sama membuat yang kedua tidak pernah bisa masuk.
+            'email' => [
+                'nullable', 'email', 'max:150',
+                Rule::unique('clients', 'email')->ignore($client?->id)->whereNull('deleted_at'),
+            ],
             'phone' => ['nullable', 'string', 'max:50'],
             'industry' => ['nullable', 'string', 'max:100'],
             'address' => ['nullable', 'string', 'max:255'],

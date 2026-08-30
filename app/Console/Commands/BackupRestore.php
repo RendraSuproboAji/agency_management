@@ -33,8 +33,12 @@ class BackupRestore extends Command
             File::copy($source.'/database.sqlite', $database);
         }
 
-        if (File::isDirectory($source.'/public')) {
-            File::copyDirectory($source.'/public', storage_path('app/public'));
+        // Arsip lama hanya punya /public; bagian yang tidak ada dilewati
+        // supaya backup sebelum perubahan ini tetap bisa dipulihkan.
+        foreach (['public', 'private'] as $disk) {
+            if (File::isDirectory($source.'/'.$disk)) {
+                File::copyDirectory($source.'/'.$disk, storage_path('app/'.$disk));
+            }
         }
 
         $this->info('Backup '.$this->argument('stamp').' dipulihkan.');

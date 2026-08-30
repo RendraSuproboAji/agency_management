@@ -19,7 +19,10 @@ class BackupRun extends Command
         File::ensureDirectoryExists($target);
 
         $this->snapshotDatabase($target.'/database.sqlite');
-        $this->copyUploads($target.'/public');
+        // Kedua disk harus ikut: lampiran (kontrak, denah) dan berkas
+        // deliverable hidup di disk privat, bukan di public/storage.
+        $this->copyUploads(storage_path('app/public'), $target.'/public');
+        $this->copyUploads(storage_path('app/private'), $target.'/private');
 
         $this->pruneOld((int) $this->option('keep'));
 
@@ -43,10 +46,8 @@ class BackupRun extends Command
         DB::statement('VACUUM INTO '.DB::getPdo()->quote($path));
     }
 
-    private function copyUploads(string $path): void
+    private function copyUploads(string $source, string $path): void
     {
-        $source = storage_path('app/public');
-
         if (File::isDirectory($source)) {
             File::copyDirectory($source, $path);
         }
