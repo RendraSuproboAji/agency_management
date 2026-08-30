@@ -18,4 +18,21 @@ export default defineConfig({
         react(),
         tailwindcss(),
     ],
+    build: {
+        rollupOptions: {
+            output: {
+                // React dan Inertia hampir tidak pernah berubah, sedangkan kode
+                // aplikasi sering. Disatukan, setiap deploy membatalkan cache
+                // 132 kB gzip untuk pengunjung lama; dipisah, yang kedaluwarsa
+                // hanya chunk aplikasi yang beberapa kB.
+                manualChunks: (id) => (
+                    id.includes('/node_modules/react') ||
+                    id.includes('/node_modules/scheduler') ||
+                    id.includes('/node_modules/@inertiajs')
+                        ? 'vendor'
+                        : undefined
+                ),
+            },
+        },
+    },
 });
