@@ -61,3 +61,27 @@ jobs:
 
       - name: Execute tests
         run: php artisan test
+
+      # Menjalankan aplikasi sungguhan di browser: menangkap gulir menyamping
+      # dan error konsol yang tidak terlihat oleh 204 tes PHP.
+      - name: Install Chromium
+        run: npx playwright-core install --with-deps chromium
+
+      - name: Seed a database for the browser test
+        run: |
+          touch database/database.sqlite
+          php artisan migrate --force
+          php artisan db:seed --force
+        env:
+          ADMIN_EMAIL: admin@example.com
+          ADMIN_PASSWORD: rahasia12345
+          SEED_DEMO: 'true'
+
+      - name: Responsive regression test
+        run: |
+          php artisan serve --port=8000 &
+          until curl -sf -o /dev/null http://127.0.0.1:8000/login; do sleep 1; done
+          node tests/e2e/responsive.mjs
+        env:
+          APP_TEST_EMAIL: admin@example.com
+          APP_TEST_PASSWORD: rahasia12345
