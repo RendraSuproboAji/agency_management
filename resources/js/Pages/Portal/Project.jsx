@@ -85,7 +85,8 @@ export default function Project({ project, statuses }) {
                                 <div>
                                     <strong>{item.title}</strong> <span className="text-sm text-muted">v{item.version} · {item.type}</span>{' '}
                                     <Badge status={item.status} />{' '}
-                                    {item.url && <a href={item.url} target="_blank" rel="noopener" className="text-accent">Buka</a>}
+                                    {item.url && <a href={item.url} target="_blank" rel="noopener" className="text-accent">Buka tur</a>}{' '}
+                                    {item.download_url && <a href={item.download_url} className="text-accent">Unduh berkas</a>}
                                     {item.review_note && <p className="whitespace-pre-line text-sm text-muted">{item.review_note}</p>}
                                 </div>
 

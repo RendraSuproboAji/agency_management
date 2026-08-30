@@ -110,6 +110,9 @@ class ProjectController extends Controller
                     ...$deliverable->only(['id', 'title', 'type', 'version', 'status', 'review_note']),
                     'scene' => $project->scenes->firstWhere('id', $deliverable->scene_id)?->name,
                     'url' => $deliverable->url(),
+                    'download_url' => $deliverable->hasFile()
+                        ? route('deliverables.download', [$project, $deliverable])
+                        : null,
                 ]),
                 'quotations' => $project->quotations->map(fn ($quotation) => [
                     'kind' => 'quotation',

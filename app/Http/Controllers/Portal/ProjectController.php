@@ -55,6 +55,9 @@ class ProjectController extends Controller
                     ...$deliverable->only(['id', 'title', 'type', 'version', 'status', 'review_note']),
                     'scene' => $project->scenes->firstWhere('id', $deliverable->scene_id)?->name,
                     'url' => $deliverable->url(),
+                    'download_url' => $deliverable->hasFile()
+                        ? route('portal.deliverables.download', [$project, $deliverable])
+                        : null,
                     'can_review' => in_array($deliverable->status, ['submitted', 'revision'], true),
                 ]),
                 'documents' => $project->quotations

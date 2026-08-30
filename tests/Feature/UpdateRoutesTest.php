@@ -47,7 +47,7 @@ class UpdateRoutesTest extends TestCase
 
     public function test_a_deliverable_updates_through_multipart_method_spoofing(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
 
         $owner = User::factory()->create();
         $project = $this->ownedProject($owner);
@@ -72,7 +72,7 @@ class UpdateRoutesTest extends TestCase
         $this->assertSame('Scene utama revisi', $deliverable->title);
         $this->assertSame('submitted', $deliverable->status);
         $this->assertNotNull($deliverable->submitted_at);
-        Storage::disk('public')->assertExists($deliverable->file_path);
+        Storage::disk('local')->assertExists($deliverable->file_path);
     }
 
     public function test_updating_an_invoice_recalculates_its_status(): void

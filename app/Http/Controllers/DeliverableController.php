@@ -10,10 +10,12 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Exists;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DeliverableController extends Controller
 {
@@ -135,6 +137,25 @@ class DeliverableController extends Controller
             ->with('status', 'Deliverable diarsipkan. Bisa dipulihkan dari halaman Arsip.');
     }
 
+    public function download(Request $request, Project $project, Deliverable $deliverable): StreamedResponse
+    {
+        $this->authorizeDeliverable($request, $project, $deliverable);
+
+        return $this->stream($deliverable);
+    }
+
+    /** Nama berkas yang diunduh mengikuti judul dan versinya, bukan nama acak di disk. */
+    public static function stream(Deliverable $deliverable): StreamedResponse
+    {
+        abort_unless($deliverable->hasFile(), 404);
+        abort_unless(Storage::disk('local')->exists($deliverable->file_path), 404);
+
+        $name = Str::slug($deliverable->title).'-v'.$deliverable->version.
+            '.'.pathinfo($deliverable->file_path, PATHINFO_EXTENSION);
+
+        return Storage::disk('local')->download($deliverable->file_path, $name);
+    }
+
     /** @return array<string, mixed> */
     private function formOptions(): array
     {
@@ -156,13 +177,13 @@ class DeliverableController extends Controller
             return null;
         }
 
-        return $request->file('file')->store('deliverables/'.$project->slug, 'public');
+        return $request->file('file')->store('deliverables/'.$project->slug, 'local');
     }
 
     private function deleteFile(Deliverable $deliverable): void
     {
         if ($deliverable->file_path) {
-            Storage::disk('public')->delete($deliverable->file_path);
+            Storage::disk('local')->delete($deliverable->file_path);
         }
     }
 

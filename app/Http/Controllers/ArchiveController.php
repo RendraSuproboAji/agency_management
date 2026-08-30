@@ -120,24 +120,31 @@ class ArchiveController extends Controller
      */
     private function deleteFiles(mixed $model): void
     {
-        // Deliverable dibagikan ke klien lewat disk publik; lampiran internal
-        // hidup di disk privat. Keduanya harus dibersihkan dari disknya sendiri.
-        [$public, $private] = match (true) {
-            $model instanceof Deliverable => [[$model->file_path], []],
-            $model instanceof Project => [
-                $model->deliverables()->withTrashed()->pluck('file_path')->all(),
-                $model->attachments()->pluck('file_path')->all(),
-            ],
-            default => [[], []],
+        // Deliverable dan lampiran sama-sama hidup di disk privat sejak berkas
+        // deliverable dipindah ke sana. Menghapus klien mencascade project —
+        // dan karenanya baris deliverable serta lampirannya — lewat foreign
+        // key, jadi berkasnya harus dikumpulkan di sini sebelum barisnya hilang.
+        $paths = match (true) {
+            $model instanceof Deliverable => [$model->file_path],
+            $model instanceof Project => $this->projectFiles($model),
+            $model instanceof Client => $model->projects()->withTrashed()->get()
+                ->flatMap(fn (Project $project) => $this->projectFiles($project))
+                ->all(),
+            default => [],
         };
 
-        if ($paths = array_filter($public)) {
-            Storage::disk('public')->delete($paths);
-        }
-
-        if ($paths = array_filter($private)) {
+        if ($paths = array_filter($paths)) {
             Storage::disk('local')->delete($paths);
         }
+    }
+
+    /** @return list<string|null> */
+    private function projectFiles(Project $project): array
+    {
+        return [
+            ...$project->deliverables()->withTrashed()->pluck('file_path'),
+            ...$project->attachments()->pluck('file_path'),
+        ];
     }
 
     private function resolve(string $type, int $id): mixed

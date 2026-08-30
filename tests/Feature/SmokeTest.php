@@ -35,6 +35,7 @@ class SmokeTest extends TestCase
         'portal.login',         // alur portal dijamin PortalAuthTest
         'portal.dashboard',
         'portal.projects.show',
+        'portal.deliverables.download',
         'login',
     ];
 
@@ -42,12 +43,16 @@ class SmokeTest extends TestCase
     {
         Storage::fake('local');
         Storage::disk('local')->put('attachments/kontrak.pdf', 'x');
+        Storage::disk('local')->put('deliverables/scene.ply', 'x');
 
         $admin = User::factory()->admin()->create();
         $client = Client::factory()->create();
         $project = Project::factory()->create(['client_id' => $client->id, 'owner_id' => $admin->id]);
         $session = CaptureSession::factory()->create(['project_id' => $project->id]);
-        $deliverable = Deliverable::factory()->create(['project_id' => $project->id]);
+        $deliverable = Deliverable::factory()->create([
+            'project_id' => $project->id,
+            'file_path' => 'deliverables/scene.ply',
+        ]);
         $quotation = Quotation::factory()->create(['project_id' => $project->id]);
         $invoice = Invoice::factory()->create(['project_id' => $project->id]);
         $equipment = Equipment::factory()->create();

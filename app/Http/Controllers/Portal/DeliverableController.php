@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Portal;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\DeliverableController as StaffDeliverableController;
 use App\Models\Client;
 use App\Models\Deliverable;
 use App\Models\Project;
 use App\Support\ActivityLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DeliverableController extends Controller
 {
@@ -53,6 +55,13 @@ class DeliverableController extends Controller
         );
 
         return back()->with('status', 'Permintaan revisi terkirim.');
+    }
+
+    public function download(Request $request, Project $project, Deliverable $deliverable): StreamedResponse
+    {
+        $this->authorizeDeliverable($request, $project, $deliverable);
+
+        return StaffDeliverableController::stream($deliverable);
     }
 
     private function authorizeDeliverable(Request $request, Project $project, Deliverable $deliverable): Client

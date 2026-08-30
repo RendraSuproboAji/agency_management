@@ -94,6 +94,7 @@ Route::middleware('auth:web')->group(function () {
     // Deliverable
     Route::get('/projects/{project}/deliverables/create', [DeliverableController::class, 'create'])->name('deliverables.create');
     Route::post('/projects/{project}/deliverables', [DeliverableController::class, 'store'])->name('deliverables.store');
+    Route::get('/projects/{project}/deliverables/{deliverable}/download', [DeliverableController::class, 'download'])->name('deliverables.download');
     Route::get('/projects/{project}/deliverables/{deliverable}/edit', [DeliverableController::class, 'edit'])->name('deliverables.edit');
     Route::put('/projects/{project}/deliverables/{deliverable}', [DeliverableController::class, 'update'])->name('deliverables.update');
     Route::put('/projects/{project}/deliverables/{deliverable}/approve', [DeliverableController::class, 'approve'])->name('deliverables.approve');
@@ -168,6 +169,7 @@ Route::prefix('portal')->name('portal.')->group(function () {
         Route::get('/', [PortalProjectController::class, 'index'])->name('dashboard');
         Route::post('/logout', [PortalAuthController::class, 'logout'])->name('logout');
         Route::get('/projects/{project}', [PortalProjectController::class, 'show'])->name('projects.show');
+        Route::get('/projects/{project}/deliverables/{deliverable}/download', [PortalDeliverableController::class, 'download'])->name('deliverables.download');
         Route::put('/projects/{project}/deliverables/{deliverable}/approve', [PortalDeliverableController::class, 'approve'])->name('deliverables.approve');
         Route::put('/projects/{project}/deliverables/{deliverable}/revision', [PortalDeliverableController::class, 'requestRevision'])->name('deliverables.revision');
     });

@@ -92,8 +92,8 @@ class ArchiveTest extends TestCase
 
     public function test_force_deleting_a_deliverable_also_removes_its_file(): void
     {
-        Storage::fake('public');
-        Storage::disk('public')->put('deliverables/scene.ply', 'x');
+        Storage::fake('local');
+        Storage::disk('local')->put('deliverables/scene.ply', 'x');
 
         $deliverable = Deliverable::factory()->create(['file_path' => 'deliverables/scene.ply']);
         $deliverable->delete();
@@ -102,7 +102,7 @@ class ArchiveTest extends TestCase
             ->delete(route('archive.force-delete', ['deliverables', $deliverable->id]))
             ->assertRedirect();
 
-        Storage::disk('public')->assertMissing('deliverables/scene.ply');
+        Storage::disk('local')->assertMissing('deliverables/scene.ply');
         $this->assertDatabaseMissing('deliverables', ['id' => $deliverable->id]);
     }
 
@@ -142,9 +142,8 @@ class ArchiveTest extends TestCase
 
     public function test_force_deleting_a_project_removes_every_file_it_owned(): void
     {
-        Storage::fake('public');
         Storage::fake('local');
-        Storage::disk('public')->put('deliverables/scene.ply', 'x');
+        Storage::disk('local')->put('deliverables/scene.ply', 'x');
         Storage::disk('local')->put('attachments/kontrak.pdf', 'x');
 
         $project = Project::factory()->create();
@@ -156,7 +155,7 @@ class ArchiveTest extends TestCase
             ->delete(route('archive.force-delete', ['projects', $project->id]))
             ->assertRedirect();
 
-        Storage::disk('public')->assertMissing('deliverables/scene.ply');
+        Storage::disk('local')->assertMissing('deliverables/scene.ply');
         Storage::disk('local')->assertMissing('attachments/kontrak.pdf');
     }
 

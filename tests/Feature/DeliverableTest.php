@@ -17,7 +17,7 @@ class DeliverableTest extends TestCase
 
     public function test_a_deliverable_file_is_stored_under_the_project_slug(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
 
         $owner = User::factory()->create();
         $project = Project::factory()->create(['owner_id' => $owner->id, 'slug' => 'showroom-kemang']);
@@ -33,7 +33,7 @@ class DeliverableTest extends TestCase
         $deliverable = $project->deliverables()->firstOrFail();
 
         $this->assertStringStartsWith('deliverables/showroom-kemang/', $deliverable->file_path);
-        Storage::disk('public')->assertExists($deliverable->file_path);
+        Storage::disk('local')->assertExists($deliverable->file_path);
         $this->assertNotNull($deliverable->submitted_at);
     }
 
@@ -98,11 +98,11 @@ class DeliverableTest extends TestCase
 
     public function test_deleting_a_deliverable_archives_it_and_keeps_the_file(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
 
         $owner = User::factory()->create();
         $project = Project::factory()->create(['owner_id' => $owner->id]);
-        Storage::disk('public')->put('deliverables/scene.ply', 'x');
+        Storage::disk('local')->put('deliverables/scene.ply', 'x');
         $deliverable = Deliverable::factory()->create([
             'project_id' => $project->id,
             'file_path' => 'deliverables/scene.ply',
@@ -114,7 +114,7 @@ class DeliverableTest extends TestCase
 
         // Berkas tetap ada supaya arsip bisa dipulihkan utuh; berkas baru
         // dibuang saat hapus permanen (lihat ArchiveTest).
-        Storage::disk('public')->assertExists('deliverables/scene.ply');
+        Storage::disk('local')->assertExists('deliverables/scene.ply');
         $this->assertSoftDeleted('deliverables', ['id' => $deliverable->id]);
     }
 

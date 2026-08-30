@@ -223,7 +223,8 @@ export default function Show({ project, canManage, statuses, billed, paid, rawSi
                         <div>
                             <strong>{item.title}</strong> <span className="text-sm text-muted">v{item.version} · {item.type}{item.scene ? ` · ${item.scene}` : ''}</span>{' '}
                             <Badge status={item.status} />{' '}
-                            {item.url && <a href={item.url} target="_blank" rel="noopener" className="text-accent">Buka aset</a>}
+                            {item.url && <a href={item.url} target="_blank" rel="noopener" className="text-accent">Buka tur</a>}{' '}
+                            {item.download_url && <a href={item.download_url} className="text-accent">Unduh berkas</a>}
                             {item.review_note && <p className="whitespace-pre-line text-sm text-muted">{item.review_note}</p>}
                         </div>
                         {canManage && (
