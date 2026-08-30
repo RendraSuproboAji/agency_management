@@ -3,6 +3,7 @@
 node_modules
 vendor
 public/build
+public/storage
 storage/backups
 storage/logs/*.log
 storage/framework/cache/data/*

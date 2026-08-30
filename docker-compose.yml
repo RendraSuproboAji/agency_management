@@ -1,12 +1,34 @@
 services:
-  app:
+  # nginx: melayani berkas statis dan unduhan besar tanpa menahan proses PHP.
+  web:
     build:
       context: .
+      target: web
       args:
         BASE_REGISTRY: ${BASE_REGISTRY:-docker.io}
     ports:
       - "8080:80"
-    environment:
+    volumes:
+      - agency-storage:/var/www/html/storage
+    depends_on:
+      - app
+    healthcheck:
+      # Sengaja bukan /up: endpoint itu tetap 200 walau APP_KEY kosong dan
+      # seluruh halaman 500. /login membangkitkan encrypter dan sesi database,
+      # jadi kegagalan konfigurasi benar-benar tertangkap.
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/login"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  app: &app
+    build:
+      context: .
+      target: runtime
+      args:
+        BASE_REGISTRY: ${BASE_REGISTRY:-docker.io}
+    environment: &app-env
       APP_NAME: "Agency Management"
       APP_ENV: production
       APP_TIMEZONE: "${APP_TIMEZONE:-Asia/Jakarta}"
@@ -14,7 +36,7 @@ services:
       TRUSTED_PROXIES: "*"
       APP_DEBUG: "false"
       APP_KEY: "${APP_KEY:-}"
-      APP_URL: "http://localhost:8080"
+      APP_URL: "${APP_URL:-http://localhost:8080}"
       LOG_CHANNEL: stderr
       DB_CONNECTION: sqlite
       DB_DATABASE: /var/www/html/storage/database/database.sqlite
@@ -28,44 +50,18 @@ services:
       SEED_DEMO: "${SEED_DEMO:-true}"
     volumes:
       - agency-storage:/var/www/html/storage
-    healthcheck:
-      # Sengaja bukan /up: endpoint itu tetap 200 walau APP_KEY kosong dan
-      # seluruh halaman 500. /login membangkitkan encrypter dan sesi database,
-      # jadi kegagalan konfigurasi benar-benar tertangkap.
-      test: ["CMD", "curl", "-fsS", "http://localhost/login"]
-      interval: 30s
-      timeout: 5s
-      retries: 5
     restart: unless-stopped
 
-  # Scheduler terpisah supaya container Apache tetap satu proses.
+  # Scheduler terpisah supaya container PHP-FPM tetap melayani request saja.
   scheduler:
-    build:
-      context: .
-      args:
-        BASE_REGISTRY: ${BASE_REGISTRY:-docker.io}
+    <<: *app
     command: php artisan schedule:work
     environment:
-      APP_NAME: "Agency Management"
-      APP_ENV: production
-      APP_TIMEZONE: "${APP_TIMEZONE:-Asia/Jakarta}"
-      SESSION_SECURE_COOKIE: "${SESSION_SECURE_COOKIE:-false}"
-      TRUSTED_PROXIES: "*"
-      APP_DEBUG: "false"
-      APP_KEY: "${APP_KEY:-}"
-      LOG_CHANNEL: stderr
-      DB_CONNECTION: sqlite
-      DB_DATABASE: /var/www/html/storage/database/database.sqlite
-      CACHE_STORE: database
-      QUEUE_CONNECTION: database
-      FILESYSTEM_DISK: local
+      <<: *app-env
       SEED_DEMO: "false"
-    volumes:
-      - agency-storage:/var/www/html/storage
     depends_on:
-      app:
-        condition: service_healthy
-    restart: unless-stopped
+      - app
+    ports: []
 
 volumes:
   agency-storage:

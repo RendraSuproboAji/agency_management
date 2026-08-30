@@ -78,6 +78,16 @@ cp .env.example .env          # opsional, hanya untuk menyetel ADMIN_*
 ADMIN_EMAIL=admin@agency.test ADMIN_PASSWORD=rahasia123 docker compose up --build
 ```
 
+Tiga service: **web** (nginx) melayani berkas statis dan unduhan besar,
+**app** (PHP-FPM) menangani request aplikasi, **scheduler** menjalankan backup
+harian. Kode di-*bake* ke dalam image web dan app saat build — tidak ada volume
+kode bersama, jadi tidak ada risiko aset basi setelah redeploy; hanya `storage/`
+yang dibagi.
+
+Alasan nginx: deliverable bisa ratusan MB, dan dengan mod_php setiap unduhan
+menahan satu proses yang membawa interpreter PHP utuh. Diukur di container:
+mengalirkan berkas 200 MB memakai ~5 MB memori di nginx.
+
 Aplikasi tersedia di <http://localhost:8080>. Kalau `APP_KEY` tidak diisi,
 entrypoint membuatnya sekali dan menyimpannya di `storage/app.key` di dalam
 volume, jadi sesi dan data terenkripsi tetap valid setelah restart. Database
