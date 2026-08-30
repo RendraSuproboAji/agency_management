@@ -188,9 +188,13 @@ export function DetailList({ items }) {
     return (
         <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {items.map(({ label, value }) => (
-                <div key={label}>
+                // min-w-0 melepas lebar minimum bawaan item grid, dan
+                // break-words memberi titik patah pada teks yang tidak
+                // punya — tanpa keduanya satu alamat email panjang cukup
+                // untuk membuat seluruh halaman menggulir menyamping.
+                <div key={label} className="min-w-0">
                     <dt className="text-[0.72rem] uppercase tracking-wide text-muted">{label}</dt>
-                    <dd className="mt-0.5">{value ?? '—'}</dd>
+                    <dd className="mt-0.5 break-words">{value ?? '—'}</dd>
                 </div>
             ))}
         </dl>
