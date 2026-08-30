@@ -7,6 +7,7 @@ use App\Models\Deliverable;
 use App\Models\Invoice;
 use App\Models\Note;
 use App\Models\Project;
+use App\Models\ProjectScene;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia;
@@ -136,5 +137,20 @@ class PortalProjectTest extends TestCase
 
         $client->refresh();
         $this->assertTrue($client->canUsePortal());
+    }
+
+    public function test_the_portal_labels_each_deliverable_with_its_scene(): void
+    {
+        $client = Client::factory()->withPortal()->create();
+        $project = Project::factory()->create(['client_id' => $client->id]);
+        $scene = ProjectScene::factory()->create(['project_id' => $project->id, 'name' => 'Lobi']);
+
+        Deliverable::factory()->create(['project_id' => $project->id, 'scene_id' => $scene->id]);
+        Deliverable::factory()->create(['project_id' => $project->id, 'scene_id' => null]);
+
+        $this->actingAs($client, 'client')->get(route('portal.projects.show', $project))
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->has('project.deliverables', 2)
+                ->where('project.deliverables', fn ($items) => collect($items)->pluck('scene')->sort()->values()->all() === [null, 'Lobi']));
     }
 }

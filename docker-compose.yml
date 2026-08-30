@@ -43,6 +43,14 @@ services:
       SESSION_DRIVER: database
       CACHE_STORE: database
       QUEUE_CONNECTION: database
+      # Pengingat harian; default `log` hanya menulis ke log container.
+      MAIL_MAILER: "${MAIL_MAILER:-log}"
+      MAIL_HOST: "${MAIL_HOST:-127.0.0.1}"
+      MAIL_PORT: "${MAIL_PORT:-2525}"
+      MAIL_USERNAME: "${MAIL_USERNAME:-}"
+      MAIL_PASSWORD: "${MAIL_PASSWORD:-}"
+      MAIL_FROM_ADDRESS: "${MAIL_FROM_ADDRESS:-no-reply@example.com}"
+      MAIL_FROM_NAME: "Agency Management"
       FILESYSTEM_DISK: local
       ADMIN_NAME: "Administrator"
       ADMIN_EMAIL: "${ADMIN_EMAIL:-admin@example.com}"

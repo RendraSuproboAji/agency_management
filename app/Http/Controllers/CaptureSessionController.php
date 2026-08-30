@@ -19,9 +19,13 @@ use Inertia\Response;
 
 class CaptureSessionController extends Controller
 {
-    /** Agenda pengambilan gambar lintas project. */
+    /** Agenda pengambilan gambar lintas project, sebagai tabel atau kalender. */
     public function index(Request $request): Response
     {
+        if ($request->query('view') === 'calendar') {
+            return $this->calendar($request);
+        }
+
         $sessions = CaptureSession::query()
             ->with(['project.client', 'crew', 'equipment'])
             ->when($request->query('status'), fn ($query, $status) => $query->where('status', $status))
@@ -41,10 +45,63 @@ class CaptureSessionController extends Controller
         ]);
 
         return Inertia::render('Sessions/Index', [
+            'mode' => 'table',
             'sessions' => $sessions,
             'filters' => $request->only(['status', 'mine']),
             'statuses' => CaptureSession::STATUSES,
         ]);
+    }
+
+    /**
+     * Tampilan bulanan. Bulan yang tidak bisa diurai — misalnya "?month=besok"
+     * dari tautan rusak — jatuh kembali ke bulan berjalan alih-alih melempar.
+     */
+    private function calendar(Request $request): Response
+    {
+        $month = $this->month($request->query('month'));
+
+        $sessions = CaptureSession::query()
+            ->with(['project.client', 'crew'])
+            ->whereBetween('scheduled_at', [$month->copy()->startOfMonth(), $month->copy()->endOfMonth()])
+            ->when($request->query('status'), fn ($query, $status) => $query->where('status', $status))
+            ->when($request->boolean('mine'), fn ($query) => $query->where('crew_id', $request->user()->id))
+            ->orderBy('scheduled_at')
+            ->get()
+            ->map(fn (CaptureSession $session) => [
+                ...$session->only(['id', 'status', 'location']),
+                'date' => $session->scheduled_at->toDateString(),
+                'time' => $session->scheduled_at->format('H:i'),
+                'project_title' => $session->project->title,
+                'project_slug' => $session->project->slug,
+                'client_name' => $session->project->client->name,
+                'crew_name' => $session->crew?->name,
+            ]);
+
+        return Inertia::render('Sessions/Index', [
+            'mode' => 'calendar',
+            'calendar' => [
+                'month' => $month->format('Y-m'),
+                'label' => $month->translatedFormat('F Y'),
+                'previous' => $month->copy()->subMonth()->format('Y-m'),
+                'next' => $month->copy()->addMonth()->format('Y-m'),
+                // Senin sebagai kolom pertama, sesuai kalender kerja di sini.
+                'leading' => ($month->copy()->startOfMonth()->dayOfWeek + 6) % 7,
+                'days' => $month->daysInMonth,
+                'today' => Carbon::today()->toDateString(),
+                'sessions' => $sessions,
+            ],
+            'filters' => $request->only(['status', 'mine']),
+            'statuses' => CaptureSession::STATUSES,
+        ]);
+    }
+
+    private function month(?string $value): Carbon
+    {
+        try {
+            return $value ? Carbon::createFromFormat('Y-m', $value)->startOfMonth() : Carbon::now()->startOfMonth();
+        } catch (\Throwable) {
+            return Carbon::now()->startOfMonth();
+        }
     }
 
     public function create(Request $request, Project $project): Response
