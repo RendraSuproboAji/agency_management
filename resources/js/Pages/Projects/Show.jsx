@@ -1,6 +1,6 @@
 import { Link, router, useForm, usePage } from '@inertiajs/react';
-import { useState } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
+import { useServerState } from '@/useServerState';
 import { Badge, Button, ButtonLink, DetailList, Money, PageHead, Panel, Table, Td, inputClass } from '@/Components/ui';
 
 function confirmThen(message, action) {
@@ -9,7 +9,7 @@ function confirmThen(message, action) {
 
 export default function Show({ project, canManage, statuses, billed, paid, rawSizeGb, jobKinds, jobStatuses, attachmentCategories }) {
     const { auth } = usePage().props;
-    const [status, setStatus] = useState(project.status);
+    const [status, setStatus] = useServerState(project.status);
     const base = `/projects/${project.slug}`;
 
     const note = useForm({ body: '' });

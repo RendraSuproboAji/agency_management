@@ -1,11 +1,11 @@
 import { Link, router, useForm, usePage } from '@inertiajs/react';
-import { useState } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
+import { useServerState } from '@/useServerState';
 import { Badge, Button, DetailList, Field, PageHead, Panel, inputClass } from '@/Components/ui';
 
 export default function Show({ serviceRequest, clients, statuses }) {
     const { auth } = usePage().props;
-    const [status, setStatus] = useState(serviceRequest.status);
+    const [status, setStatus] = useServerState(serviceRequest.status);
 
     const convert = useForm({
         title: `Tur 3D ${serviceRequest.company || serviceRequest.name}`,
