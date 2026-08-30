@@ -17,18 +17,18 @@ class UserManagementTest extends TestCase
             'name' => 'Rina Kapture',
             'email' => 'rina@example.com',
             'role' => 'staff',
-            'password' => 'kata-sandi-baru',
+            'password' => 'kata-sandi-b4ru',
         ])->assertRedirect(route('users.index'));
 
         $user = User::where('email', 'rina@example.com')->firstOrFail();
         $this->assertSame('staff', $user->role);
-        $this->assertTrue(Hash::check('kata-sandi-baru', $user->password));
+        $this->assertTrue(Hash::check('kata-sandi-b4ru', $user->password));
     }
 
     public function test_updating_without_a_password_keeps_the_old_one(): void
     {
         $admin = User::factory()->admin()->create();
-        $user = User::factory()->create(['password' => 'kata-sandi-lama']);
+        $user = User::factory()->create(['password' => 'kata-sandi-l4ma']);
 
         $this->actingAs($admin)->put(route('users.update', $user), [
             'name' => 'Nama Baru',
@@ -38,7 +38,7 @@ class UserManagementTest extends TestCase
 
         $user->refresh();
         $this->assertSame('Nama Baru', $user->name);
-        $this->assertTrue(Hash::check('kata-sandi-lama', $user->password));
+        $this->assertTrue(Hash::check('kata-sandi-l4ma', $user->password));
     }
 
     public function test_the_last_admin_cannot_be_demoted(): void

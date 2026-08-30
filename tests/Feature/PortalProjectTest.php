@@ -131,7 +131,7 @@ class PortalProjectTest extends TestCase
                 'name' => $client->name,
                 'status' => 'active',
                 'portal_enabled' => '1',
-                'password' => 'kata-sandi-portal',
+                'password' => 'kata-sandi-p0rtal',
             ])->assertRedirect();
 
         $client->refresh();

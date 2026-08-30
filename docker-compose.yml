@@ -10,6 +10,8 @@ services:
       APP_NAME: "Agency Management"
       APP_ENV: production
       APP_TIMEZONE: "${APP_TIMEZONE:-Asia/Jakarta}"
+      SESSION_SECURE_COOKIE: "${SESSION_SECURE_COOKIE:-false}"
+      TRUSTED_PROXIES: "*"
       APP_DEBUG: "false"
       APP_KEY: "${APP_KEY:-}"
       APP_URL: "http://localhost:8080"
@@ -47,6 +49,8 @@ services:
       APP_NAME: "Agency Management"
       APP_ENV: production
       APP_TIMEZONE: "${APP_TIMEZONE:-Asia/Jakarta}"
+      SESSION_SECURE_COOKIE: "${SESSION_SECURE_COOKIE:-false}"
+      TRUSTED_PROXIES: "*"
       APP_DEBUG: "false"
       APP_KEY: "${APP_KEY:-}"
       LOG_CHANNEL: stderr
