@@ -1,5 +1,5 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 const NAV = [
     { label: 'Dashboard', route: '/', match: (url) => url === '/' },
@@ -20,6 +20,10 @@ export default function AppLayout({ title, children }) {
     const { auth, flash, newRequestCount, errors } = usePage().props;
     const { url } = usePage();
     const [open, setOpen] = useState(false);
+
+    // Inertia bernavigasi tanpa melepas layout ini, jadi tanpa penutupan
+    // eksplisit panel menu tetap terbuka menutupi halaman tujuan.
+    useEffect(() => router.on('navigate', () => setOpen(false)), []);
 
     const items = [...NAV, ...(auth.user?.is_admin ? ADMIN_NAV : [])];
     const errorList = Object.values(errors ?? {});
@@ -42,7 +46,7 @@ export default function AppLayout({ title, children }) {
                     <span className="grid h-9 w-9 place-items-center rounded-lg bg-accent text-xs font-bold text-accent-ink">3D</span>
                     <span>
                         <strong className="block">Agency Management</strong>
-                        <small className="block text-xs text-muted">Manajemen jasa immersive 3D reconstruction</small>
+                        <small className="block text-xs text-muted max-sm:hidden">Manajemen jasa immersive 3D reconstruction</small>
                     </span>
                 </Link>
 
@@ -84,7 +88,7 @@ export default function AppLayout({ title, children }) {
                     })}
                 </nav>
 
-                <main className="max-w-5xl p-4 md:p-6">
+                <main className="mx-auto w-full min-w-0 max-w-5xl p-4 md:p-6">
                     {flash?.status && (
                         <div className="mb-4 rounded-lg border border-ok px-3 py-2 text-sm text-ok">{flash.status}</div>
                     )}
@@ -92,7 +96,7 @@ export default function AppLayout({ title, children }) {
                     {errorList.length > 0 && (
                         <div className="mb-4 rounded-lg border border-danger px-3 py-2 text-sm text-danger">
                             <ul className="list-disc pl-4">
-                                {errorList.map((message) => <li key={message}>{message}</li>)}
+                                {errorList.map((message, index) => <li key={index}>{message}</li>)}
                             </ul>
                         </div>
                     )}

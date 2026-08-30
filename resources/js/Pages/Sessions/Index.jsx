@@ -3,6 +3,8 @@ import { useState } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
 import { Badge, Button, ButtonLink, PageHead, Pagination, Table, Td, inputClass } from '@/Components/ui';
 
+const dateAt = (month, index) => `${month}-${String(index + 1).padStart(2, '0')}`;
+
 const WEEKDAYS = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
 
 export default function Index({ mode, sessions, calendar, filters, statuses }) {
@@ -77,12 +79,15 @@ function Calendar({ calendar, filters }) {
     return (
         <section>
             <div className="mb-3 flex items-center justify-between gap-3">
-                <Link href={link(calendar.previous)} className="text-accent">← Bulan sebelumnya</Link>
+                <Link href={link(calendar.previous)} className="text-accent">← <span className="max-sm:hidden">Bulan sebelumnya</span></Link>
                 <strong>{calendar.label}</strong>
-                <Link href={link(calendar.next)} className="text-accent">Bulan berikutnya →</Link>
+                <Link href={link(calendar.next)} className="text-accent"><span className="max-sm:hidden">Bulan berikutnya</span> →</Link>
             </div>
 
-            <div className="grid grid-cols-7 gap-px overflow-x-auto rounded border border-line bg-line text-sm">
+            {/* Grid bulanan hanya di layar lebar: tujuh kolom pada 360px
+                menyisakan sel 46px, terlalu sempit untuk tanggal apalagi
+                judul sesi. Di ponsel dipakai daftar agenda. */}
+            <div className="hidden grid-cols-7 gap-px rounded border border-line bg-line text-sm sm:grid">
                 {WEEKDAYS.map((day) => (
                     <div key={day} className="bg-raised px-2 py-1 text-center text-xs text-muted">{day}</div>
                 ))}
@@ -92,7 +97,7 @@ function Calendar({ calendar, filters }) {
                 ))}
 
                 {Array.from({ length: calendar.days }, (_, index) => {
-                    const date = `${calendar.month}-${String(index + 1).padStart(2, '0')}`;
+                    const date = dateAt(calendar.month, index);
                     const items = byDate.get(date) ?? [];
 
                     return (
@@ -109,6 +114,27 @@ function Calendar({ calendar, filters }) {
                         </div>
                     );
                 })}
+            </div>
+
+            {/* Agenda ponsel: hanya tanggal yang benar-benar punya sesi. */}
+            <div className="sm:hidden">
+                {byDate.size === 0 && <p className="text-sm text-muted">Tidak ada sesi pada bulan ini.</p>}
+
+                {[...byDate.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([date, items]) => (
+                    <div key={date} className="mb-2 rounded-lg border border-line bg-surface p-3">
+                        <div className={`mb-1 text-xs font-semibold ${date === calendar.today ? 'text-accent' : 'text-muted'}`}>
+                            {Number(date.slice(-2))} {calendar.label}
+                            {date === calendar.today && ' · hari ini'}
+                        </div>
+                        {items.map((session) => (
+                            <Link key={session.id} href={`/projects/${session.project_slug}`}
+                                  className="mt-1 flex justify-between gap-3 rounded bg-raised px-2 py-1 text-sm hover:text-accent">
+                                <span>{session.project_title}</span>
+                                <span className="shrink-0 text-muted">{session.time}</span>
+                            </Link>
+                        ))}
+                    </div>
+                ))}
             </div>
         </section>
     );
