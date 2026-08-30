@@ -42,6 +42,20 @@ jobs:
       - name: Generate app key
         run: php artisan key:generate
 
+      # CI tidak pernah membangun frontend, jadi JSX yang rusak lolos sampai
+      # ketahuan di browser. Build-nya cepat dan menutup celah itu.
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
+
       - name: Check code style
         run: vendor/bin/pint --test
 

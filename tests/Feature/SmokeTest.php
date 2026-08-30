@@ -15,6 +15,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 /**
@@ -99,9 +100,11 @@ class SmokeTest extends TestCase
                 "Route [{$name}] memakai parameter yang belum disiapkan tes ini.",
             );
 
-            $this->actingAs($admin)
+            $response = $this->actingAs($admin)
                 ->get(route($name, $parameters->all()))
                 ->assertOk("Route [{$name}] tidak merender halaman.");
+
+            $this->assertComponentExists($name, $response);
 
             $checked[] = $name;
         }
@@ -109,6 +112,31 @@ class SmokeTest extends TestCase
         // Jaring pengaman: kalau daftar route menyusut drastis, tes ini harus gagal
         // alih-alih diam-diam menguji sedikit halaman.
         $this->assertGreaterThanOrEqual(25, count($checked));
+    }
+
+    /**
+     * Inertia::render() tetap menjawab 200 walau berkas komponennya tidak ada —
+     * kesalahannya baru terlihat sebagai layar kosong di browser. Status 200
+     * saja karena itu bukan jaring pengaman yang cukup.
+     */
+    private function assertComponentExists(string $name, TestResponse $response): void
+    {
+        // Halaman non-Inertia (unduhan berkas, view Blade cetak) tidak punya
+        // prop "page" sama sekali.
+        try {
+            $component = $response->viewData('page')['component'] ?? null;
+        } catch (\Throwable) {
+            return;
+        }
+
+        if ($component === null) {
+            return;
+        }
+
+        $this->assertFileExists(
+            resource_path('js/Pages/'.$component.'.jsx'),
+            "Route [{$name}] merender komponen [{$component}] yang tidak punya berkas.",
+        );
     }
 
     public function test_the_public_pages_render_for_guests(): void
