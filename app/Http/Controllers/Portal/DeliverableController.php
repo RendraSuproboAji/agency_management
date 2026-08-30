@@ -18,10 +18,15 @@ class DeliverableController extends Controller
     {
         $client = $this->authorizeDeliverable($request, $project, $deliverable);
 
-        $deliverable->update([
+        // Menyamai requestRevision di berkas ini dan approve di sisi staf:
+        // tanpa validasi, review_note berupa larik melempar di kolom teks.
+        $data = $request->validate([
+            'review_note' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $deliverable->update($data + [
             'status' => 'approved',
             'approved_at' => now(),
-            'review_note' => $request->input('review_note'),
         ]);
 
         ActivityLogger::log(

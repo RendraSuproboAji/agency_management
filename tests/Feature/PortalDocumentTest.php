@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Client;
+use App\Models\Deliverable;
 use App\Models\Invoice;
 use App\Models\Project;
 use App\Models\Quotation;
@@ -68,5 +69,23 @@ class PortalDocumentTest extends TestCase
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->has('project.documents.0.payments', 1)
                 ->where('project.documents.0.payments.0.amount', 400000));
+    }
+
+    public function test_a_review_note_from_the_portal_must_be_text(): void
+    {
+        $client = Client::factory()->withPortal()->create();
+        $project = Project::factory()->create(['client_id' => $client->id]);
+        $deliverable = Deliverable::factory()->create([
+            'project_id' => $project->id,
+            'status' => 'submitted',
+        ]);
+
+        // Sisi staf sudah memvalidasi ini; sisi klien terlewat, sehingga
+        // review_note berupa larik akan melempar pada kolom teks.
+        $this->actingAs($client, 'client')
+            ->put(route('portal.deliverables.approve', [$project, $deliverable]), ['review_note' => ['x']])
+            ->assertSessionHasErrors('review_note');
+
+        $this->assertSame('submitted', $deliverable->fresh()->status);
     }
 }
