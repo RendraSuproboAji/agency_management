@@ -74,6 +74,11 @@ class ArchiveController extends Controller
     {
         $model = $this->resolve($type, $id);
 
+        // Memulihkan anak selagi induknya masih terarsip menghasilkan baris
+        // yang relasi ->project-nya null, dan itu menjatuhkan halaman yang
+        // menampilkannya. Induknya harus dipulihkan lebih dulu.
+        abort_if($this->hasArchivedParent($model), 403);
+
         match (true) {
             $model instanceof Client => Archive::restoreClient($model),
             $model instanceof Project => Archive::restoreProject($model),
@@ -83,6 +88,17 @@ class ArchiveController extends Controller
         ActivityLogger::log($model, 'archive.restored', 'Memulihkan '.$this->label($type).' dari arsip.');
 
         return back()->with('status', 'Data dipulihkan dari arsip.');
+    }
+
+    /** Apakah induk record ini masih ada di arsip? */
+    private function hasArchivedParent(mixed $model): bool
+    {
+        return match (true) {
+            $model instanceof Client => false,
+            $model instanceof Project => Client::onlyTrashed()->whereKey($model->client_id)->exists(),
+            $model instanceof Equipment => false,
+            default => Project::onlyTrashed()->whereKey($model->project_id)->exists(),
+        };
     }
 
     public function forceDelete(string $type, int $id): RedirectResponse

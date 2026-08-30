@@ -24,7 +24,7 @@ class DashboardController extends Controller
         $unsettled = Invoice::unsettled()->with('payments')->get();
 
         return Inertia::render('Dashboard', [
-            'runningJobs' => ProcessingJob::running()->with('project.client')->orderBy('started_at')->get()
+            'runningJobs' => ProcessingJob::running()->with('project.client')->whereHas('project')->orderBy('started_at')->get()
                 ->map(fn (ProcessingJob $job) => [
                     'id' => $job->id,
                     'kind' => str_replace('_', ' ', $job->kind),
@@ -73,6 +73,7 @@ class DashboardController extends Controller
                     'deadline' => $project->deadline->format('d M Y'),
                 ]),
             'upcomingSessions' => CaptureSession::with('project.client', 'crew')
+                ->whereHas('project')
                 ->where('status', 'scheduled')
                 ->where('scheduled_at', '>=', now()->startOfDay())
                 ->orderBy('scheduled_at')

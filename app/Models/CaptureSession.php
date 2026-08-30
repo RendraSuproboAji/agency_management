@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable([
     'project_id', 'scene_id', 'crew_id', 'scheduled_at', 'completed_at', 'location',
@@ -17,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 class CaptureSession extends Model
 {
     /** @use HasFactory<CaptureSessionFactory> */
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     public const STATUSES = ['scheduled', 'done', 'cancelled'];
 

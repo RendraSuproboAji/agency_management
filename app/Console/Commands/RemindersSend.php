@@ -47,6 +47,7 @@ class RemindersSend extends Command
     {
         $sessions = CaptureSession::query()
             ->with(['project.client', 'crew'])
+            ->whereHas('project')
             ->where('status', 'scheduled')
             ->whereBetween('scheduled_at', [
                 $today->copy()->addDay()->startOfDay(),

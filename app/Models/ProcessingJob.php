@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable([
     'project_id', 'capture_session_id', 'kind', 'status', 'machine',
@@ -16,7 +17,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class ProcessingJob extends Model
 {
     /** @use HasFactory<ProcessingJobFactory> */
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     public const KINDS = ['photogrammetry', 'splat_training', 'mesh_export', 'cleanup', 'other'];
 

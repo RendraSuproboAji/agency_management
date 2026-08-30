@@ -74,6 +74,8 @@ class Archive
         self::stampMany($project->quotations(), $at);
         self::stampMany($project->deliverables(), $at);
         self::stampMany($project->scenes(), $at);
+        self::stampMany($project->captureSessions(), $at);
+        self::stampMany($project->processingJobs(), $at);
         self::stamp($project, $at);
     }
 
@@ -84,6 +86,8 @@ class Archive
         self::matching($project->quotations()->onlyTrashed(), $at)->restore();
         self::matching($project->deliverables()->onlyTrashed(), $at)->restore();
         self::matching($project->scenes()->onlyTrashed(), $at)->restore();
+        self::matching($project->captureSessions()->onlyTrashed(), $at)->restore();
+        self::matching($project->processingJobs()->onlyTrashed(), $at)->restore();
 
         foreach (self::matching($project->invoices()->onlyTrashed(), $at)->get() as $invoice) {
             $invoice->restore();

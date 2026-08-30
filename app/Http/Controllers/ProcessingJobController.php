@@ -72,7 +72,11 @@ class ProcessingJobController extends Controller
     {
         $this->authorizeJob($request, $project, $job);
 
-        $job->delete();
+        // Kolom deleted_at pada sesi dan job hanya dipakai untuk ikut
+        // terarsip bersama project. Tombol di halaman ini menjanjikan
+        // "hapus", dan halaman Arsip tidak menampilkan keduanya — jadi
+        // hapus benar-benar permanen alih-alih meninggalkan baris tersembunyi.
+        $job->forceDelete();
 
         return back()->with('status', 'Job dihapus.');
     }

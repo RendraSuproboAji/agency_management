@@ -28,6 +28,9 @@ class CaptureSessionController extends Controller
 
         $sessions = CaptureSession::query()
             ->with(['project.client', 'crew', 'equipment'])
+            // Jaring pengaman: satu relasi yang lupa diarsipkan tidak boleh
+            // menjatuhkan seluruh agenda lewat ->project yang null.
+            ->whereHas('project')
             ->when($request->query('status'), fn ($query, $status) => $query->where('status', $status))
             ->when($request->boolean('mine'), fn ($query) => $query->where('crew_id', $request->user()->id))
             ->orderBy('scheduled_at')
@@ -62,6 +65,7 @@ class CaptureSessionController extends Controller
 
         $sessions = CaptureSession::query()
             ->with(['project.client', 'crew'])
+            ->whereHas('project')
             ->whereBetween('scheduled_at', [$month->copy()->startOfMonth(), $month->copy()->endOfMonth()])
             ->when($request->query('status'), fn ($query, $status) => $query->where('status', $status))
             ->when($request->boolean('mine'), fn ($query) => $query->where('crew_id', $request->user()->id))
@@ -189,7 +193,11 @@ class CaptureSessionController extends Controller
     {
         $this->authorizeSession($request, $project, $session);
 
-        $session->delete();
+        // Kolom deleted_at pada sesi dan job hanya dipakai untuk ikut
+        // terarsip bersama project. Tombol di halaman ini menjanjikan
+        // "hapus", dan halaman Arsip tidak menampilkan keduanya — jadi
+        // hapus benar-benar permanen alih-alih meninggalkan baris tersembunyi.
+        $session->forceDelete();
 
         return redirect()->route('projects.show', $project)->with('status', 'Sesi dihapus.');
     }
