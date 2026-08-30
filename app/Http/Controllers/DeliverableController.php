@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Deliverable;
 use App\Models\Project;
+use App\Notifications\DeliverableSubmitted;
 use App\Support\ActivityLogger;
+use App\Support\Notifier;
 use App\Support\UploadRules;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -43,7 +45,9 @@ class DeliverableController extends Controller
         $data['file_path'] = $this->storeFile($request, $project);
         $data['submitted_at'] = $data['status'] === 'submitted' ? now() : null;
 
-        $project->deliverables()->create($data);
+        $deliverable = $project->deliverables()->create($data);
+
+        $this->notifyClientIfSubmitted($project, $deliverable);
 
         return redirect()->route('projects.show', $project)->with('status', 'Deliverable ditambahkan.');
     }
@@ -87,7 +91,15 @@ class DeliverableController extends Controller
             $data['submitted_at'] = null;
         }
 
+        $wasSubmitted = $deliverable->status === 'submitted';
+
         $deliverable->update($data);
+
+        // Hanya saat baru berpindah ke submitted; menyunting deliverable yang
+        // sudah diserahkan tidak boleh mengirim surat berulang kali.
+        if (! $wasSubmitted) {
+            $this->notifyClientIfSubmitted($project, $deliverable);
+        }
 
         return redirect()->route('projects.show', $project)->with('status', 'Deliverable diperbarui.');
     }
@@ -191,6 +203,16 @@ class DeliverableController extends Controller
         if ($deliverable->file_path) {
             Storage::disk('local')->delete($deliverable->file_path);
         }
+    }
+
+    /** Klien diberi tahu begitu ada hasil pekerjaan yang menunggu tinjauannya. */
+    private function notifyClientIfSubmitted(Project $project, Deliverable $deliverable): void
+    {
+        if ($deliverable->status !== 'submitted') {
+            return;
+        }
+
+        Notifier::send($project->client, new DeliverableSubmitted($deliverable->load('project.client', 'scene')));
     }
 
     /** @return Collection<int, array<string, mixed>> */

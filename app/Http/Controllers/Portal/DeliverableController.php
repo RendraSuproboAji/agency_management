@@ -7,7 +7,9 @@ use App\Http\Controllers\DeliverableController as StaffDeliverableController;
 use App\Models\Client;
 use App\Models\Deliverable;
 use App\Models\Project;
+use App\Notifications\DeliverableReviewed;
 use App\Support\ActivityLogger;
+use App\Support\Notifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -36,6 +38,8 @@ class DeliverableController extends Controller
             actor: 'Klien — '.$client->name,
         );
 
+        $this->notifyOwner($project, $deliverable, approved: true);
+
         return back()->with('status', 'Terima kasih, deliverable disetujui.');
     }
 
@@ -59,6 +63,8 @@ class DeliverableController extends Controller
             actor: 'Klien — '.$client->name,
         );
 
+        $this->notifyOwner($project, $deliverable, approved: false);
+
         return back()->with('status', 'Permintaan revisi terkirim.');
     }
 
@@ -67,6 +73,20 @@ class DeliverableController extends Controller
         $this->authorizeDeliverable($request, $project, $deliverable);
 
         return StaffDeliverableController::stream($deliverable);
+    }
+
+    /**
+     * PIC project diberi tahu begitu klien menilai.
+     *
+     * Sebelumnya penilaian klien hanya menjadi baris log aktivitas yang tak
+     * seorang pun mengawasinya, sehingga revisi bisa menganggur berhari-hari.
+     */
+    private function notifyOwner(Project $project, Deliverable $deliverable, bool $approved): void
+    {
+        Notifier::send(
+            $project->owner,
+            new DeliverableReviewed($deliverable->load('project.client'), $approved),
+        );
     }
 
     private function authorizeDeliverable(Request $request, Project $project, Deliverable $deliverable): Client
