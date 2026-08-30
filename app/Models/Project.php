@@ -52,6 +52,11 @@ class Project extends Model
         return $this->belongsTo(User::class, 'owner_id');
     }
 
+    public function scenes(): HasMany
+    {
+        return $this->hasMany(ProjectScene::class)->orderBy('position')->orderBy('id');
+    }
+
     public function captureSessions(): HasMany
     {
         return $this->hasMany(CaptureSession::class);

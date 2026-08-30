@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 #[Fillable([
-    'project_id', 'crew_id', 'scheduled_at', 'completed_at', 'location',
+    'project_id', 'scene_id', 'crew_id', 'scheduled_at', 'completed_at', 'location',
     'equipment_note', 'shot_count', 'raw_size_gb', 'frame_count',
     'backup_location', 'weather_note', 'status', 'notes',
 ])]
@@ -33,6 +33,11 @@ class CaptureSession extends Model
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);
+    }
+
+    public function scene(): BelongsTo
+    {
+        return $this->belongsTo(ProjectScene::class, 'scene_id');
     }
 
     public function equipment(): BelongsToMany

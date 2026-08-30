@@ -10,8 +10,10 @@ use App\Support\ActivityLogger;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Exists;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -51,6 +53,7 @@ class CaptureSessionController extends Controller
 
         return Inertia::render('Sessions/Form', [
             'project' => $project->only(['slug', 'title']),
+            'scenes' => $this->scenes($project),
             'session' => [
                 'status' => 'scheduled',
                 'location' => $project->site_location,
@@ -63,7 +66,7 @@ class CaptureSessionController extends Controller
     {
         abort_unless($project->isManageableBy($request->user()), 403);
 
-        $data = $this->validated($request);
+        $data = $this->validated($request, $project);
         $session = $project->captureSessions()->create($data);
         $session->equipment()->sync($data['equipment'] ?? []);
 
@@ -78,9 +81,10 @@ class CaptureSessionController extends Controller
 
         return Inertia::render('Sessions/Form', [
             'project' => $project->only(['slug', 'title']),
+            'scenes' => $this->scenes($project),
             'session' => [
                 ...$session->only([
-                    'id', 'crew_id', 'status', 'location', 'equipment_note',
+                    'id', 'crew_id', 'scene_id', 'status', 'location', 'equipment_note',
                     'shot_count', 'raw_size_gb', 'frame_count', 'backup_location', 'weather_note', 'notes',
                 ]),
                 'scheduled_at' => $session->scheduled_at->format('Y-m-d\\TH:i'),
@@ -93,7 +97,7 @@ class CaptureSessionController extends Controller
     {
         $this->authorizeSession($request, $project, $session);
 
-        $data = $this->validated($request, $session);
+        $data = $this->validated($request, $project, $session);
         $session->update($data);
         $session->equipment()->sync($data['equipment'] ?? []);
 
@@ -149,11 +153,26 @@ class CaptureSessionController extends Controller
         abort_unless($project->isManageableBy($request->user()), 403);
     }
 
+    /** @return Collection<int, array<string, mixed>> */
+    private function scenes(Project $project): Collection
+    {
+        return $project->scenes()->get()->map(fn ($scene) => $scene->only(['id', 'name']));
+    }
+
+    /** Scene harus milik project ini dan belum diarsipkan. */
+    private function sceneRule(Project $project): Exists
+    {
+        return Rule::exists('project_scenes', 'id')
+            ->where('project_id', $project->id)
+            ->whereNull('deleted_at');
+    }
+
     /** @return array<string, mixed> */
-    private function validated(Request $request, ?CaptureSession $session = null): array
+    private function validated(Request $request, Project $project, ?CaptureSession $session = null): array
     {
         $validator = Validator::make($request->all(), [
             'crew_id' => ['nullable', 'exists:users,id'],
+            'scene_id' => ['nullable', $this->sceneRule($project)],
             'scheduled_at' => ['required', 'date'],
             'location' => ['nullable', 'string', 'max:255'],
             'equipment_note' => ['nullable', 'string'],

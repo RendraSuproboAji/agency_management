@@ -2,12 +2,13 @@ import { useForm } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import { Button, ButtonLink, Field, inputClass } from '@/Components/ui';
 
-export default function Form({ project, session, crew, equipment, statuses }) {
+export default function Form({ project, session, scenes, crew, equipment, statuses }) {
     const editing = Boolean(session.id);
 
     const { data, setData, post, put, processing, errors } = useForm({
         scheduled_at: session.scheduled_at ?? '',
         crew_id: session.crew_id ?? '',
+        scene_id: session.scene_id ?? '',
         status: session.status ?? 'scheduled',
         shot_count: session.shot_count ?? '',
         raw_size_gb: session.raw_size_gb ?? '',
@@ -35,6 +36,12 @@ export default function Form({ project, session, crew, equipment, statuses }) {
                 editing ? put(`/projects/${project.slug}/sessions/${session.id}`) : post(`/projects/${project.slug}/sessions`);
             }}>
                 <div className="gap-x-4 sm:grid sm:grid-cols-2">
+                    <Field label="Scene" error={errors.scene_id}>
+                        <select className={inputClass} value={data.scene_id} onChange={(e) => setData('scene_id', e.target.value)}>
+                            <option value="">— seluruh project —</option>
+                            {scenes.map((scene) => <option key={scene.id} value={scene.id}>{scene.name}</option>)}
+                        </select>
+                    </Field>
                     <Field label="Jadwal *" error={errors.scheduled_at}>
                         <input type="datetime-local" className={inputClass} value={data.scheduled_at}
                                onChange={(e) => setData('scheduled_at', e.target.value)} required />

@@ -8,7 +8,10 @@ use App\Support\ActivityLogger;
 use App\Support\UploadRules;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Exists;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -20,6 +23,7 @@ class DeliverableController extends Controller
 
         return Inertia::render('Deliverables/Form', [
             'project' => $project->only(['slug', 'title']),
+            'scenes' => $this->scenes($project),
             'deliverable' => [
                 'type' => 'splat',
                 'status' => 'draft',
@@ -33,7 +37,7 @@ class DeliverableController extends Controller
     {
         abort_unless($project->isManageableBy($request->user()), 403);
 
-        $data = $this->validated($request);
+        $data = $this->validated($request, $project);
         $data['file_path'] = $this->storeFile($request, $project);
         $data['submitted_at'] = $data['status'] === 'submitted' ? now() : null;
 
@@ -48,8 +52,9 @@ class DeliverableController extends Controller
 
         return Inertia::render('Deliverables/Form', [
             'project' => $project->only(['slug', 'title']),
+            'scenes' => $this->scenes($project),
             'deliverable' => [
-                ...$deliverable->only(['id', 'title', 'type', 'version', 'status', 'external_url', 'review_note']),
+                ...$deliverable->only(['id', 'scene_id', 'title', 'type', 'version', 'status', 'external_url', 'review_note']),
                 'file_name' => $deliverable->file_path ? basename($deliverable->file_path) : null,
             ],
         ] + $this->formOptions());
@@ -59,7 +64,7 @@ class DeliverableController extends Controller
     {
         $this->authorizeDeliverable($request, $project, $deliverable);
 
-        $data = $this->validated($request);
+        $data = $this->validated($request, $project);
 
         if ($path = $this->storeFile($request, $project)) {
             $this->deleteFile($deliverable);
@@ -161,11 +166,26 @@ class DeliverableController extends Controller
         }
     }
 
+    /** @return Collection<int, array<string, mixed>> */
+    private function scenes(Project $project): Collection
+    {
+        return $project->scenes()->get()->map(fn ($scene) => $scene->only(['id', 'name']));
+    }
+
+    /** Scene harus milik project ini dan belum diarsipkan. */
+    private function sceneRule(Project $project): Exists
+    {
+        return Rule::exists('project_scenes', 'id')
+            ->where('project_id', $project->id)
+            ->whereNull('deleted_at');
+    }
+
     /** @return array<string, mixed> */
-    private function validated(Request $request): array
+    private function validated(Request $request, Project $project): array
     {
         return $request->validate([
             'title' => ['required', 'string', 'max:150'],
+            'scene_id' => ['nullable', $this->sceneRule($project)],
             'type' => ['required', 'in:'.implode(',', Deliverable::TYPES)],
             'version' => ['required', 'integer', 'min:1'],
             'external_url' => ['nullable', 'url', 'max:255'],

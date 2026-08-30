@@ -36,6 +36,7 @@ class ProjectController extends Controller
 
         $project->load([
             'captureSessions' => fn ($query) => $query->orderBy('scheduled_at'),
+            'scenes',
             'deliverables' => fn ($query) => $query->orderByDesc('created_at'),
             'invoices' => fn ($query) => $query->whereNot('status', 'draft')->with('payments')->orderByDesc('issued_at'),
             'quotations' => fn ($query) => $query->whereNot('status', 'draft')->with('items')->orderByDesc('issued_at'),
@@ -52,6 +53,7 @@ class ProjectController extends Controller
                 ]),
                 'deliverables' => $project->deliverables->map(fn ($deliverable) => [
                     ...$deliverable->only(['id', 'title', 'type', 'version', 'status', 'review_note']),
+                    'scene' => $project->scenes->firstWhere('id', $deliverable->scene_id)?->name,
                     'url' => $deliverable->url(),
                     'can_review' => in_array($deliverable->status, ['submitted', 'revision'], true),
                 ]),

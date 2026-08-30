@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 
 #[Fillable([
-    'project_id', 'title', 'type', 'version', 'file_path', 'external_url',
+    'project_id', 'scene_id', 'title', 'type', 'version', 'file_path', 'external_url',
     'status', 'review_note', 'submitted_at', 'approved_at',
 ])]
 class Deliverable extends Model
@@ -34,6 +34,11 @@ class Deliverable extends Model
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);
+    }
+
+    public function scene(): BelongsTo
+    {
+        return $this->belongsTo(ProjectScene::class, 'scene_id');
     }
 
     /** Tautan eksternal (mis. GalleryVT) diutamakan; kalau tidak ada pakai berkas terunggah. */

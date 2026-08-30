@@ -2,13 +2,14 @@ import { useForm } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import { Button, ButtonLink, Field, inputClass } from '@/Components/ui';
 
-export default function Form({ project, deliverable, types, statuses }) {
+export default function Form({ project, deliverable, scenes, types, statuses }) {
     const editing = Boolean(deliverable.id);
 
     const { data, setData, post, processing, errors } = useForm({
         title: deliverable.title ?? '',
         type: deliverable.type ?? 'splat',
         version: deliverable.version ?? 1,
+        scene_id: deliverable.scene_id ?? '',
         status: deliverable.status ?? 'draft',
         external_url: deliverable.external_url ?? '',
         review_note: deliverable.review_note ?? '',
@@ -44,6 +45,12 @@ export default function Form({ project, deliverable, types, statuses }) {
                     <Field label="Jenis *" error={errors.type}>
                         <select className={inputClass} value={data.type} onChange={(e) => setData('type', e.target.value)}>
                             {types.map((type) => <option key={type} value={type}>{type}</option>)}
+                        </select>
+                    </Field>
+                    <Field label="Scene" error={errors.scene_id}>
+                        <select className={inputClass} value={data.scene_id} onChange={(e) => setData('scene_id', e.target.value)}>
+                            <option value="">— seluruh project —</option>
+                            {scenes.map((scene) => <option key={scene.id} value={scene.id}>{scene.name}</option>)}
                         </select>
                     </Field>
                     <Field label="Versi *" error={errors.version}>

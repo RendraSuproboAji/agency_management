@@ -16,6 +16,7 @@ use App\Http\Controllers\Portal\DeliverableController as PortalDeliverableContro
 use App\Http\Controllers\Portal\ProjectController as PortalProjectController;
 use App\Http\Controllers\ProcessingJobController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\ProjectSceneController;
 use App\Http\Controllers\PublicRequestController;
 use App\Http\Controllers\QuotationController;
 use App\Http\Controllers\ServiceRequestController;
@@ -77,6 +78,12 @@ Route::middleware('auth:web')->group(function () {
     Route::delete('/projects/{project}', [ProjectController::class, 'destroy'])->name('projects.destroy');
 
     // Sesi pengambilan gambar milik satu project
+    // Scene per project (mis. lobi, ruang pamer) — deliverable dan sesi bisa
+    // ditautkan ke salah satunya.
+    Route::post('/projects/{project}/scenes', [ProjectSceneController::class, 'store'])->name('scenes.store');
+    Route::put('/projects/{project}/scenes/{scene}', [ProjectSceneController::class, 'update'])->name('scenes.update');
+    Route::delete('/projects/{project}/scenes/{scene}', [ProjectSceneController::class, 'destroy'])->name('scenes.destroy');
+
     Route::get('/projects/{project}/sessions/create', [CaptureSessionController::class, 'create'])->name('sessions.create');
     Route::post('/projects/{project}/sessions', [CaptureSessionController::class, 'store'])->name('sessions.store');
     Route::get('/projects/{project}/sessions/{session}/edit', [CaptureSessionController::class, 'edit'])->name('sessions.edit');

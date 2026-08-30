@@ -75,6 +75,7 @@ class ProjectController extends Controller
             'client',
             'owner',
             'captureSessions' => fn ($query) => $query->with('crew', 'equipment')->orderBy('scheduled_at'),
+            'scenes',
             'deliverables' => fn ($query) => $query->orderByDesc('created_at'),
             'quotations' => fn ($query) => $query->with('items')->orderByDesc('issued_at'),
             'invoices' => fn ($query) => $query->with('payments')->orderByDesc('issued_at'),
@@ -96,14 +97,18 @@ class ProjectController extends Controller
                 'client_slug' => $project->client->slug,
                 'owner_name' => $project->owner?->name,
                 'deadline' => $project->deadline?->format('d M Y'),
+                'scenes' => $project->scenes->map(fn ($scene) => [
+                    ...$scene->only(['id', 'name', 'slug', 'position', 'gallery_url', 'notes']),
+                ]),
                 'capture_sessions' => $project->captureSessions->map(fn ($session) => [
-                    ...$session->only(['id', 'status', 'location', 'shot_count']),
+                    ...$session->only(['id', 'status', 'location', 'shot_count', 'scene_id']),
                     'scheduled_at' => $session->scheduled_at->format('d M Y H:i'),
                     'crew_name' => $session->crew?->name,
                     'equipment' => $session->equipment->pluck('name')->join(', '),
                 ]),
                 'deliverables' => $project->deliverables->map(fn ($deliverable) => [
                     ...$deliverable->only(['id', 'title', 'type', 'version', 'status', 'review_note']),
+                    'scene' => $project->scenes->firstWhere('id', $deliverable->scene_id)?->name,
                     'url' => $deliverable->url(),
                 ]),
                 'quotations' => $project->quotations->map(fn ($quotation) => [

@@ -15,6 +15,7 @@ export default function Show({ project, canManage, statuses, billed, paid, rawSi
     const note = useForm({ body: '' });
     const job = useForm({ kind: 'splat_training', status: 'queued', capture_session_id: '', machine: '' });
     const attachment = useForm({ title: '', category: 'contract', file: null });
+    const scene = useForm({ name: '', gallery_url: '' });
 
     return (
         <AppLayout title={project.title}>
@@ -180,6 +181,38 @@ export default function Show({ project, canManage, statuses, billed, paid, rawSi
                 )}
             </Panel>
 
+            <Panel title="Scene">
+                {project.scenes.length === 0 && <p className="text-sm text-muted">Belum ada scene. Satu project bisa punya beberapa ruang atau titik tangkap.</p>}
+                {project.scenes.map((item) => (
+                    <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 border-b border-line py-2 last:border-b-0">
+                        <div>
+                            <strong>{item.name}</strong> <span className="text-xs text-muted">{item.slug}</span>
+                            {item.gallery_url && <>{' · '}<a href={item.gallery_url} target="_blank" rel="noopener" className="text-accent">Buka tur</a></>}
+                            {item.notes && <p className="whitespace-pre-line text-sm text-muted">{item.notes}</p>}
+                        </div>
+                        {canManage && (
+                            <Button small variant="danger"
+                                    onClick={() => confirmThen('Arsipkan scene ini?', () => router.delete(`${base}/scenes/${item.id}`))}>
+                                Arsipkan
+                            </Button>
+                        )}
+                    </div>
+                ))}
+
+                {canManage && (
+                    <form className="mt-4 flex flex-wrap items-end gap-2"
+                          onSubmit={(e) => { e.preventDefault(); scene.post(`${base}/scenes`, { onSuccess: () => scene.reset() }); }}>
+                        <input className={`${inputClass} w-56`} placeholder="Nama scene" value={scene.data.name}
+                               onChange={(e) => scene.setData('name', e.target.value)} />
+                        <input className={`${inputClass} w-72`} placeholder="URL tur (opsional)" value={scene.data.gallery_url}
+                               onChange={(e) => scene.setData('gallery_url', e.target.value)} />
+                        <Button type="submit" disabled={scene.processing}>Tambah scene</Button>
+                    </form>
+                )}
+                {scene.errors.name && <p className="mt-2 text-sm text-danger">{scene.errors.name}</p>}
+                {scene.errors.gallery_url && <p className="mt-2 text-sm text-danger">{scene.errors.gallery_url}</p>}
+            </Panel>
+
             <Panel
                 title="Deliverable"
                 actions={canManage && <ButtonLink href={`${base}/deliverables/create`} small>Tambah deliverable</ButtonLink>}
@@ -188,7 +221,7 @@ export default function Show({ project, canManage, statuses, billed, paid, rawSi
                 {project.deliverables.map((item) => (
                     <div key={item.id} className="flex flex-wrap justify-between gap-3 border-b border-line py-3 last:border-b-0">
                         <div>
-                            <strong>{item.title}</strong> <span className="text-sm text-muted">v{item.version} · {item.type}</span>{' '}
+                            <strong>{item.title}</strong> <span className="text-sm text-muted">v{item.version} · {item.type}{item.scene ? ` · ${item.scene}` : ''}</span>{' '}
                             <Badge status={item.status} />{' '}
                             {item.url && <a href={item.url} target="_blank" rel="noopener" className="text-accent">Buka aset</a>}
                             {item.review_note && <p className="whitespace-pre-line text-sm text-muted">{item.review_note}</p>}

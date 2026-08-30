@@ -16,6 +16,22 @@ function RevisionForm({ action }) {
     );
 }
 
+/**
+ * Kelompokkan hasil pekerjaan per scene, mempertahankan urutan aslinya.
+ * Deliverable tanpa scene tetap tampil, di bawah judul kosong.
+ */
+function groupByScene(items) {
+    const groups = new Map();
+
+    for (const item of items) {
+        const key = item.scene ?? null;
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(item);
+    }
+
+    return [...groups.entries()];
+}
+
 export default function Project({ project, statuses }) {
     return (
         <PortalLayout title={project.title}>
@@ -61,24 +77,29 @@ export default function Project({ project, statuses }) {
 
             <Panel title="Hasil pekerjaan">
                 {project.deliverables.length === 0 && <p className="text-sm text-muted">Belum ada hasil yang diserahkan.</p>}
-                {project.deliverables.map((item) => (
-                    <div key={item.id} className="flex flex-wrap justify-between gap-3 border-b border-line py-3 last:border-b-0">
-                        <div>
-                            <strong>{item.title}</strong> <span className="text-sm text-muted">v{item.version} · {item.type}</span>{' '}
-                            <Badge status={item.status} />{' '}
-                            {item.url && <a href={item.url} target="_blank" rel="noopener" className="text-accent">Buka</a>}
-                            {item.review_note && <p className="whitespace-pre-line text-sm text-muted">{item.review_note}</p>}
-                        </div>
+                {groupByScene(project.deliverables).map(([scene, items]) => (
+                    <section key={scene ?? ''}>
+                        {scene && <h3 className="mt-4 text-sm font-semibold text-muted">{scene}</h3>}
+                        {items.map((item) => (
+                            <div key={item.id} className="flex flex-wrap justify-between gap-3 border-b border-line py-3 last:border-b-0">
+                                <div>
+                                    <strong>{item.title}</strong> <span className="text-sm text-muted">v{item.version} · {item.type}</span>{' '}
+                                    <Badge status={item.status} />{' '}
+                                    {item.url && <a href={item.url} target="_blank" rel="noopener" className="text-accent">Buka</a>}
+                                    {item.review_note && <p className="whitespace-pre-line text-sm text-muted">{item.review_note}</p>}
+                                </div>
 
-                        {item.can_review && (
-                            <div className="flex flex-wrap items-center gap-2">
-                                <Button small onClick={() => router.put(`/portal/projects/${project.slug}/deliverables/${item.id}/approve`)}>
-                                    Setujui
-                                </Button>
-                                <RevisionForm action={`/portal/projects/${project.slug}/deliverables/${item.id}/revision`} />
+                                {item.can_review && (
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <Button small onClick={() => router.put(`/portal/projects/${project.slug}/deliverables/${item.id}/approve`)}>
+                                            Setujui
+                                        </Button>
+                                        <RevisionForm action={`/portal/projects/${project.slug}/deliverables/${item.id}/revision`} />
+                                    </div>
+                                )}
                             </div>
-                        )}
-                    </div>
+                        ))}
+                    </section>
                 ))}
             </Panel>
 
