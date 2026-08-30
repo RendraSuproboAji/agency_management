@@ -68,6 +68,8 @@ class ProjectController extends Controller
                         'status' => $quotation->status,
                         'issued_at' => $quotation->issued_at->format('d M Y'),
                         'amount' => $quotation->total(),
+                        'print_url' => route('portal.quotations.print', [$project, $quotation]),
+                        'payments' => [],
                     ])
                     ->concat($project->invoices->map(fn ($invoice) => [
                         'kind' => 'invoice',
@@ -77,6 +79,18 @@ class ProjectController extends Controller
                         'issued_at' => $invoice->issued_at->format('d M Y'),
                         'amount' => (float) $invoice->amount,
                         'outstanding' => $invoice->outstanding(),
+                        'print_url' => route('portal.invoices.print', [$project, $invoice]),
+                        // Klien berhak melihat pembayarannya sendiri sudah
+                        // tercatat; datanya memang sudah dimuat sejak awal.
+                        'payments' => $invoice->payments
+                            ->sortBy('paid_at')
+                            ->map(fn ($payment) => [
+                                'id' => $payment->id,
+                                'paid_at' => $payment->paid_at->format('d M Y'),
+                                'amount' => (float) $payment->amount,
+                                'method' => $payment->method,
+                            ])
+                            ->values(),
                     ]))
                     ->values(),
             ],

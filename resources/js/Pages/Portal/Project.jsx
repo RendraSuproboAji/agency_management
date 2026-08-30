@@ -114,7 +114,19 @@ export default function Project({ project, statuses }) {
                                 <Money amount={doc.amount} />
                                 {doc.kind === 'invoice' && <><br /><small className="text-muted">sisa <Money amount={doc.outstanding} /></small></>}
                             </Td>
-                            <Td><Badge status={doc.status} /></Td>
+                            <Td>
+                                <Badge status={doc.status} />
+                                {' '}<a href={doc.print_url} className="text-accent">Cetak</a>
+                                {doc.payments.length > 0 && (
+                                    <ul className="mt-1 text-xs text-muted">
+                                        {doc.payments.map((payment) => (
+                                            <li key={payment.id}>
+                                                {payment.paid_at} · <Money amount={payment.amount} /> · {payment.method}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </Td>
                         </tr>
                     ))}
                 </Table>

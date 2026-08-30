@@ -13,6 +13,7 @@ use App\Http\Controllers\NoteController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\Portal\AuthController as PortalAuthController;
 use App\Http\Controllers\Portal\DeliverableController as PortalDeliverableController;
+use App\Http\Controllers\Portal\DocumentController as PortalDocumentController;
 use App\Http\Controllers\Portal\ProjectController as PortalProjectController;
 use App\Http\Controllers\ProcessingJobController;
 use App\Http\Controllers\ProjectController;
@@ -169,6 +170,8 @@ Route::prefix('portal')->name('portal.')->group(function () {
         Route::get('/', [PortalProjectController::class, 'index'])->name('dashboard');
         Route::post('/logout', [PortalAuthController::class, 'logout'])->name('logout');
         Route::get('/projects/{project}', [PortalProjectController::class, 'show'])->name('projects.show');
+        Route::get('/projects/{project}/quotations/{quotation}/print', [PortalDocumentController::class, 'quotation'])->name('quotations.print');
+        Route::get('/projects/{project}/invoices/{invoice}/print', [PortalDocumentController::class, 'invoice'])->name('invoices.print');
         Route::get('/projects/{project}/deliverables/{deliverable}/download', [PortalDeliverableController::class, 'download'])->name('deliverables.download');
         Route::put('/projects/{project}/deliverables/{deliverable}/approve', [PortalDeliverableController::class, 'approve'])->name('deliverables.approve');
         Route::put('/projects/{project}/deliverables/{deliverable}/revision', [PortalDeliverableController::class, 'requestRevision'])->name('deliverables.revision');

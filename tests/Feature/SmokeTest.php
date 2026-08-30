@@ -36,6 +36,8 @@ class SmokeTest extends TestCase
         'portal.dashboard',
         'portal.projects.show',
         'portal.deliverables.download',
+        'portal.quotations.print',
+        'portal.invoices.print',
         'login',
     ];
 
