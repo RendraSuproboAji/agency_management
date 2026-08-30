@@ -29,7 +29,7 @@ export default function Index({ mode, sessions, calendar, filters, statuses }) {
             </PageHead>
 
             <form onSubmit={submit} className="mb-3 flex flex-wrap items-center gap-2">
-                <select className={`${inputClass} w-40`} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+                <select className={`${inputClass} sm:w-40`} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
                     <option value="">Semua status</option>
                     {statuses.map((s) => <option key={s} value={s}>{s}</option>)}
                 </select>

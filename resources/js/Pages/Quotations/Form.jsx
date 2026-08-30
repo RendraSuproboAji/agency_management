@@ -64,9 +64,9 @@ export default function Form({ project, quotation, statuses }) {
                         <tr key={index}>
                             <Td><input className={inputClass} value={item.description} required
                                        onChange={(e) => setItem(index, 'description', e.target.value)} /></Td>
-                            <Td><input type="number" step="0.01" min="0" className={`${inputClass} w-20`} value={item.qty} required
+                            <Td><input type="number" step="0.01" min="0" className={`${inputClass} sm:w-20`} value={item.qty} required
                                        onChange={(e) => setItem(index, 'qty', e.target.value)} /></Td>
-                            <Td><input className={`${inputClass} w-24`} value={item.unit ?? ''}
+                            <Td><input className={`${inputClass} sm:w-24`} value={item.unit ?? ''}
                                        onChange={(e) => setItem(index, 'unit', e.target.value)} /></Td>
                             <Td><input type="number" step="0.01" min="0" className={inputClass} value={item.unit_price} required
                                        onChange={(e) => setItem(index, 'unit_price', e.target.value)} /></Td>

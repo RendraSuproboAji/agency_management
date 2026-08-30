@@ -18,9 +18,9 @@ export default function Index({ clients, filters, statuses }) {
             </PageHead>
 
             <form onSubmit={submit} className="mb-3 flex flex-wrap items-center gap-2">
-                <input type="search" placeholder="Cari nama, kontak, email…" className={`${inputClass} w-56`}
+                <input type="search" placeholder="Cari nama, kontak, email…" className={`${inputClass} sm:w-56`}
                        value={form.q} onChange={(e) => setForm({ ...form, q: e.target.value })} />
-                <select className={`${inputClass} w-40`} value={form.status}
+                <select className={`${inputClass} sm:w-40`} value={form.status}
                         onChange={(e) => setForm({ ...form, status: e.target.value })}>
                     <option value="">Semua status</option>
                     {statuses.map((status) => <option key={status} value={status}>{status}</option>)}

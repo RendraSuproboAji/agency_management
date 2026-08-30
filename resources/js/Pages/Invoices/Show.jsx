@@ -78,17 +78,17 @@ export default function Show({ project, invoice, canManage, methods }) {
                     }}>
                         <h3 className="mb-2 text-sm font-semibold">Catat pembayaran</h3>
                         <div className="flex flex-wrap items-end gap-2">
-                            <input type="date" className={`${inputClass} w-40`} value={payment.data.paid_at}
+                            <input type="date" className={`${inputClass} sm:w-40`} value={payment.data.paid_at}
                                    onChange={(e) => payment.setData('paid_at', e.target.value)} required />
-                            <input type="number" step="0.01" min="0.01" placeholder="Jumlah" className={`${inputClass} w-40`}
+                            <input type="number" step="0.01" min="0.01" placeholder="Jumlah" className={`${inputClass} sm:w-40`}
                                    value={payment.data.amount} onChange={(e) => payment.setData('amount', e.target.value)} required />
-                            <select className={`${inputClass} w-32`} value={payment.data.method}
+                            <select className={`${inputClass} sm:w-32`} value={payment.data.method}
                                     onChange={(e) => payment.setData('method', e.target.value)}>
                                 {methods.map((m) => <option key={m} value={m}>{m}</option>)}
                             </select>
-                            <input placeholder="Referensi" className={`${inputClass} w-44`} value={payment.data.reference}
+                            <input placeholder="Referensi" className={`${inputClass} sm:w-44`} value={payment.data.reference}
                                    onChange={(e) => payment.setData('reference', e.target.value)} />
-                            <input placeholder="Catatan, mis. DP 50%" className={`${inputClass} w-52`} value={payment.data.note}
+                            <input placeholder="Catatan, mis. DP 50%" className={`${inputClass} sm:w-52`} value={payment.data.note}
                                    onChange={(e) => payment.setData('note', e.target.value)} />
                             <Button type="submit" variant="primary" disabled={payment.processing}>Catat</Button>
                         </div>

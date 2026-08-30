@@ -44,7 +44,7 @@ export default function Show({ serviceRequest, clients, statuses }) {
                 <form className="mt-4 flex flex-wrap items-center gap-2"
                       onSubmit={(e) => { e.preventDefault(); router.put(`/requests/${serviceRequest.id}/status`, { status }); }}>
                     <label className="text-xs text-muted">Status</label>
-                    <select className={`${inputClass} w-40`} value={status} onChange={(e) => setStatus(e.target.value)}>
+                    <select className={`${inputClass} sm:w-40`} value={status} onChange={(e) => setStatus(e.target.value)}>
                         {statuses.map((s) => <option key={s} value={s}>{s}</option>)}
                     </select>
                     <Button type="submit">Simpan status</Button>

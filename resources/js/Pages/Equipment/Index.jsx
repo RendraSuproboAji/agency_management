@@ -14,13 +14,13 @@ export default function Index({ equipment, filters, categories, statuses, isAdmi
 
             <form onSubmit={(e) => { e.preventDefault(); router.get('/equipment', form, { preserveState: true }); }}
                   className="mb-3 flex flex-wrap items-center gap-2">
-                <input type="search" placeholder="Cari nama, kode, no. seri…" className={`${inputClass} w-56`}
+                <input type="search" placeholder="Cari nama, kode, no. seri…" className={`${inputClass} sm:w-56`}
                        value={form.q} onChange={(e) => setForm({ ...form, q: e.target.value })} />
-                <select className={`${inputClass} w-36`} value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+                <select className={`${inputClass} sm:w-36`} value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
                     <option value="">Semua kategori</option>
                     {categories.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
-                <select className={`${inputClass} w-36`} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+                <select className={`${inputClass} sm:w-36`} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
                     <option value="">Semua status</option>
                     {statuses.map((s) => <option key={s} value={s}>{s}</option>)}
                 </select>

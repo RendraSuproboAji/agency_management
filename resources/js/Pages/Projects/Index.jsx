@@ -16,13 +16,13 @@ export default function Index({ projects, clients, filters, statuses }) {
 
             <form onSubmit={(e) => { e.preventDefault(); router.get('/projects', form, { preserveState: true }); }}
                   className="mb-3 flex flex-wrap items-center gap-2">
-                <input type="search" placeholder="Cari judul, lokasi, klien…" className={`${inputClass} w-56`}
+                <input type="search" placeholder="Cari judul, lokasi, klien…" className={`${inputClass} sm:w-56`}
                        value={form.q} onChange={(e) => setForm({ ...form, q: e.target.value })} />
-                <select className={`${inputClass} w-40`} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+                <select className={`${inputClass} sm:w-40`} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
                     <option value="">Semua status</option>
                     {statuses.map((s) => <option key={s} value={s}>{s}</option>)}
                 </select>
-                <select className={`${inputClass} w-44`} value={form.client} onChange={(e) => setForm({ ...form, client: e.target.value })}>
+                <select className={`${inputClass} sm:w-44`} value={form.client} onChange={(e) => setForm({ ...form, client: e.target.value })}>
                     <option value="">Semua klien</option>
                     {clients.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
                 </select>

@@ -8,7 +8,7 @@ function RevisionForm({ action }) {
 
     return (
         <form className="flex items-center gap-1" onSubmit={(e) => { e.preventDefault(); put(action); }}>
-            <input className={`${inputClass} w-56`} placeholder="Apa yang perlu diperbaiki?" required
+            <input className={`${inputClass} sm:w-56`} placeholder="Apa yang perlu diperbaiki?" required
                    value={data.review_note} onChange={(e) => setData('review_note', e.target.value)} />
             <Button small type="submit" disabled={processing}>Minta revisi</Button>
             {errors.review_note && <span className="text-xs text-danger">{errors.review_note}</span>}

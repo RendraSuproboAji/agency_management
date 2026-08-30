@@ -56,7 +56,7 @@ export default function Show({ project, canManage, statuses, billed, paid, rawSi
                     <form className="mt-4 flex flex-wrap items-center gap-2"
                           onSubmit={(e) => { e.preventDefault(); router.put(`${base}/status`, { status }); }}>
                         <label className="text-xs text-muted">Pindah status</label>
-                        <select className={`${inputClass} w-44`} value={status} onChange={(e) => setStatus(e.target.value)}>
+                        <select className={`${inputClass} sm:w-44`} value={status} onChange={(e) => setStatus(e.target.value)}>
                             {statuses.map((s) => <option key={s} value={s}>{s}</option>)}
                         </select>
                         <Button type="submit">Simpan status</Button>
@@ -163,18 +163,18 @@ export default function Show({ project, canManage, statuses, billed, paid, rawSi
                 {canManage && (
                     <form className="mt-3 flex flex-wrap items-end gap-2"
                           onSubmit={(e) => { e.preventDefault(); job.post(`${base}/jobs`, { onSuccess: () => job.reset() }); }}>
-                        <select className={`${inputClass} w-44`} value={job.data.kind} onChange={(e) => job.setData('kind', e.target.value)}>
+                        <select className={`${inputClass} sm:w-44`} value={job.data.kind} onChange={(e) => job.setData('kind', e.target.value)}>
                             {jobKinds.map((k) => <option key={k} value={k}>{k.replace(/_/g, ' ')}</option>)}
                         </select>
-                        <select className={`${inputClass} w-32`} value={job.data.status} onChange={(e) => job.setData('status', e.target.value)}>
+                        <select className={`${inputClass} sm:w-32`} value={job.data.status} onChange={(e) => job.setData('status', e.target.value)}>
                             {jobStatuses.map((s) => <option key={s} value={s}>{s}</option>)}
                         </select>
-                        <select className={`${inputClass} w-48`} value={job.data.capture_session_id}
+                        <select className={`${inputClass} sm:w-48`} value={job.data.capture_session_id}
                                 onChange={(e) => job.setData('capture_session_id', e.target.value)}>
                             <option value="">— tidak terkait sesi —</option>
                             {project.capture_sessions.map((s) => <option key={s.id} value={s.id}>{s.scheduled_at}</option>)}
                         </select>
-                        <input className={`${inputClass} w-52`} placeholder="Mesin" value={job.data.machine}
+                        <input className={`${inputClass} sm:w-52`} placeholder="Mesin" value={job.data.machine}
                                onChange={(e) => job.setData('machine', e.target.value)} />
                         <Button type="submit" disabled={job.processing}>Tambah job</Button>
                     </form>
@@ -202,9 +202,9 @@ export default function Show({ project, canManage, statuses, billed, paid, rawSi
                 {canManage && (
                     <form className="mt-4 flex flex-wrap items-end gap-2"
                           onSubmit={(e) => { e.preventDefault(); scene.post(`${base}/scenes`, { onSuccess: () => scene.reset() }); }}>
-                        <input className={`${inputClass} w-56`} placeholder="Nama scene" value={scene.data.name}
+                        <input className={`${inputClass} sm:w-56`} placeholder="Nama scene" value={scene.data.name}
                                onChange={(e) => scene.setData('name', e.target.value)} />
-                        <input className={`${inputClass} w-72`} placeholder="URL tur (opsional)" value={scene.data.gallery_url}
+                        <input className={`${inputClass} sm:w-72`} placeholder="URL tur (opsional)" value={scene.data.gallery_url}
                                onChange={(e) => scene.setData('gallery_url', e.target.value)} />
                         <Button type="submit" disabled={scene.processing}>Tambah scene</Button>
                     </form>
@@ -269,13 +269,13 @@ export default function Show({ project, canManage, statuses, billed, paid, rawSi
                               e.preventDefault();
                               attachment.post(`${base}/attachments`, { forceFormData: true, onSuccess: () => attachment.reset() });
                           }}>
-                        <input className={`${inputClass} w-56`} placeholder="Judul lampiran" required
+                        <input className={`${inputClass} sm:w-56`} placeholder="Judul lampiran" required
                                value={attachment.data.title} onChange={(e) => attachment.setData('title', e.target.value)} />
-                        <select className={`${inputClass} w-40`} value={attachment.data.category}
+                        <select className={`${inputClass} sm:w-40`} value={attachment.data.category}
                                 onChange={(e) => attachment.setData('category', e.target.value)}>
                             {attachmentCategories.map((c) => <option key={c} value={c}>{c}</option>)}
                         </select>
-                        <input type="file" required className={`${inputClass} w-64`}
+                        <input type="file" required className={`${inputClass} sm:w-64`}
                                onChange={(e) => attachment.setData('file', e.target.files[0])} />
                         <Button type="submit" disabled={attachment.processing}>Unggah</Button>
                     </form>
