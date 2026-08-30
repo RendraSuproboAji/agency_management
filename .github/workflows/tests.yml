@@ -76,6 +76,9 @@ jobs:
           ADMIN_EMAIL: admin@example.com
           ADMIN_PASSWORD: rahasia12345
           SEED_DEMO: 'true'
+          # Menyalakan portal untuk satu klien demo supaya portal klien ikut
+          # teruji; tanpa ini seeder sengaja tidak membuat akun klien.
+          DEMO_CLIENT_PASSWORD: rahasia12345
 
       - name: Responsive regression test
         run: |
@@ -85,3 +88,5 @@ jobs:
         env:
           APP_TEST_EMAIL: admin@example.com
           APP_TEST_PASSWORD: rahasia12345
+          APP_TEST_CLIENT_EMAIL: studio-interior-nusantara@example.com
+          APP_TEST_CLIENT_PASSWORD: rahasia12345
