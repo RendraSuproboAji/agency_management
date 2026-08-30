@@ -1,4 +1,5 @@
 import { Link } from '@inertiajs/react';
+import { Children, cloneElement, isValidElement } from 'react';
 
 const BADGE_TONES = {
     ok: 'border-ok text-ok',
@@ -47,14 +48,31 @@ export function Panel({ title, actions, children }) {
     );
 }
 
+/**
+ * Tabel yang berubah menjadi kartu di layar sempit.
+ *
+ * Di bawah breakpoint sm, thead disembunyikan dan tiap baris menjadi kartu
+ * berisi pasangan label-nilai. Labelnya diambil dari `head` dan disuntikkan ke
+ * tiap sel sebagai data-label berdasarkan posisinya — aman karena tidak ada
+ * satu pun baris di aplikasi ini yang jumlah selnya berbeda dari `head`.
+ * Dengan begitu 16 tabel di 15 halaman ikut responsif tanpa disentuh.
+ */
 export function Table({ head, children, empty, colSpan = null }) {
-    const rows = Array.isArray(children) ? children : [children];
-    const isEmpty = rows.filter(Boolean).length === 0;
+    const rows = Children.toArray(children);
+    const isEmpty = rows.length === 0;
+
+    const labelled = rows.map((row) => (
+        isValidElement(row)
+            ? cloneElement(row, undefined, Children.map(row.props.children, (cell, index) => (
+                isValidElement(cell) ? cloneElement(cell, { 'data-label': head[index] }) : cell
+            )))
+            : row
+    ));
 
     return (
         <div className="overflow-x-auto">
-            <table className="mt-3 w-full border-collapse text-sm">
-                <thead>
+            <table className="mt-3 w-full border-collapse text-sm max-sm:block">
+                <thead className="max-sm:hidden">
                     <tr>
                         {head.map((label) => (
                             <th key={label} className="border-b border-line px-2 py-2 text-left text-[0.72rem] uppercase tracking-wide text-muted">
@@ -63,10 +81,13 @@ export function Table({ head, children, empty, colSpan = null }) {
                         ))}
                     </tr>
                 </thead>
-                <tbody>
+                {/* Tiap baris jadi kartu berbingkai di layar sempit. */}
+                <tbody className="max-sm:block max-sm:[&>tr]:mb-2 max-sm:[&>tr]:block max-sm:[&>tr]:rounded-lg max-sm:[&>tr]:border max-sm:[&>tr]:border-line max-sm:[&>tr]:py-2">
                     {isEmpty ? (
-                        <tr><td colSpan={colSpan ?? head.length} className="px-2 py-3 text-muted">{empty}</td></tr>
-                    ) : children}
+                        <tr className="max-sm:block">
+                            <td colSpan={colSpan ?? head.length} className="px-2 py-3 text-muted max-sm:block">{empty}</td>
+                        </tr>
+                    ) : labelled}
                 </tbody>
             </table>
         </div>
@@ -74,7 +95,21 @@ export function Table({ head, children, empty, colSpan = null }) {
 }
 
 export function Td({ className = '', children, ...props }) {
-    return <td className={`border-b border-line px-2 py-2 align-top ${className}`} {...props}>{children}</td>;
+    return (
+        <td
+            className={
+                'border-b border-line px-2 py-2 align-top ' +
+                // Kartu: label kolom muncul di kiri, nilainya di kanan.
+                "max-sm:flex max-sm:justify-between max-sm:gap-3 max-sm:border-0 max-sm:px-3 max-sm:py-1 " +
+                "max-sm:before:shrink-0 max-sm:before:text-[0.7rem] max-sm:before:uppercase max-sm:before:tracking-wide " +
+                "max-sm:before:text-muted max-sm:before:content-[attr(data-label)] " +
+                className
+            }
+            {...props}
+        >
+            {children}
+        </td>
+    );
 }
 
 const BUTTON_STYLES = {
