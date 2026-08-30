@@ -10,18 +10,21 @@ use App\Http\Controllers\DeliverableController;
 use App\Http\Controllers\EquipmentController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\NoteController;
+use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\Portal\AuthController as PortalAuthController;
 use App\Http\Controllers\Portal\DeliverableController as PortalDeliverableController;
 use App\Http\Controllers\Portal\DocumentController as PortalDocumentController;
 use App\Http\Controllers\Portal\ProjectController as PortalProjectController;
 use App\Http\Controllers\ProcessingJobController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectSceneController;
 use App\Http\Controllers\PublicRequestController;
 use App\Http\Controllers\QuotationController;
 use App\Http\Controllers\ServiceRequestController;
 use App\Http\Controllers\UserController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 // Form request klien — publik, tanpa login.
@@ -33,6 +36,16 @@ Route::post('/request', [PublicRequestController::class, 'store'])
 Route::middleware('guest:web')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:6,1');
+
+    // Lupa kata sandi staf. Throttle sama ketatnya dengan login: halaman ini
+    // mengirim email atas nama siapa pun yang menebak alamat.
+    Route::get('/forgot-password', fn () => app(PasswordResetController::class)->request('web'))->name('password.request');
+    Route::post('/forgot-password', fn (Request $request) => app(PasswordResetController::class)->email($request, 'web'))
+        ->middleware('throttle:6,1')->name('password.email');
+    Route::get('/reset-password/{token}', fn (string $token, Request $request) => app(PasswordResetController::class)->reset('web', $token, $request))
+        ->name('password.reset');
+    Route::post('/reset-password', fn (Request $request) => app(PasswordResetController::class)->update($request, 'web'))
+        ->middleware('throttle:6,1')->name('password.update');
 });
 
 Route::middleware('auth:web')->group(function () {
@@ -40,6 +53,11 @@ Route::middleware('auth:web')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
     // Klien
+    // Profil sendiri: mengganti kata sandi tidak lagi harus lewat admin.
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
+
     Route::get('/clients', [ClientController::class, 'index'])->name('clients.index');
     Route::get('/clients/create', [ClientController::class, 'create'])->name('clients.create');
     Route::post('/clients', [ClientController::class, 'store'])->name('clients.store');
@@ -164,6 +182,14 @@ Route::prefix('portal')->name('portal.')->group(function () {
     Route::middleware('guest:client')->group(function () {
         Route::get('/login', [PortalAuthController::class, 'showLogin'])->name('login');
         Route::post('/login', [PortalAuthController::class, 'login'])->middleware('throttle:6,1');
+
+        Route::get('/forgot-password', fn () => app(PasswordResetController::class)->request('client'))->name('password.request');
+        Route::post('/forgot-password', fn (Request $request) => app(PasswordResetController::class)->email($request, 'client'))
+            ->middleware('throttle:6,1')->name('password.email');
+        Route::get('/reset-password/{token}', fn (string $token, Request $request) => app(PasswordResetController::class)->reset('client', $token, $request))
+            ->name('password.reset');
+        Route::post('/reset-password', fn (Request $request) => app(PasswordResetController::class)->update($request, 'client'))
+            ->middleware('throttle:6,1')->name('password.update');
     });
 
     Route::middleware('auth:client')->group(function () {

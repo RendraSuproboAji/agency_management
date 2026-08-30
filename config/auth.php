@@ -110,6 +110,16 @@ return [
             'expire' => 60,
             'throttle' => 60,
         ],
+
+        // Tabel terpisah, bukan berbagi dengan staf: password_reset_tokens
+        // memakai email sebagai primary key, jadi staf dan klien beremail sama
+        // akan saling menimpa tokennya.
+        'clients' => [
+            'provider' => 'clients',
+            'table' => 'client_password_reset_tokens',
+            'expire' => 60,
+            'throttle' => 60,
+        ],
     ],
 
     /*

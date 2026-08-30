@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
 
 #[Fillable([
     'name', 'slug', 'contact_name', 'email', 'phone',
@@ -19,7 +20,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 class Client extends Authenticatable
 {
     /** @use HasFactory<ClientFactory> */
-    use HasFactory, SoftDeletes;
+    use HasFactory, Notifiable, SoftDeletes;
 
     public const STATUSES = ['lead', 'active', 'inactive'];
 

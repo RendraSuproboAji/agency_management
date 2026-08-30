@@ -39,6 +39,11 @@ class SmokeTest extends TestCase
         'portal.quotations.print',
         'portal.invoices.print',
         'login',
+        // Alur lupa kata sandi hanya untuk tamu dan punya PasswordResetTest.
+        'password.request',
+        'password.reset',
+        'portal.password.request',
+        'portal.password.reset',
     ];
 
     public function test_every_named_get_page_renders(): void

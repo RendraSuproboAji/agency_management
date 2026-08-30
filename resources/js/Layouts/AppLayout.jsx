@@ -47,9 +47,9 @@ export default function AppLayout({ title, children }) {
                 </Link>
 
                 <div className="ml-auto flex items-center gap-3">
-                    <span className="hidden text-sm text-muted sm:inline">
+                    <Link href="/profile" className="hidden text-sm text-muted hover:text-accent sm:inline">
                         {auth.user?.name} · {auth.user?.role}
-                    </span>
+                    </Link>
                     <button
                         type="button"
                         onClick={() => router.post('/logout')}

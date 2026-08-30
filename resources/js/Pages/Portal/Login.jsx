@@ -1,4 +1,4 @@
-import { Head, useForm } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import { Button, Field, inputClass } from '@/Components/ui';
 
 export default function Login() {
@@ -26,6 +26,10 @@ export default function Login() {
                 </label>
 
                 <Button type="submit" variant="primary" className="w-full" disabled={processing}>Masuk</Button>
+            
+                <p className="mt-4 text-center text-xs">
+                    <Link href="/portal/forgot-password" className="text-accent">Lupa kata sandi?</Link>
+                </p>
             </form>
         </div>
     );
