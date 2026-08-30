@@ -170,6 +170,10 @@ class CaptureSessionController extends Controller
     {
         $this->authorizeSession($request, $project, $session);
 
+        // Sesi yang dibatalkan tidak pernah terjadi; menandainya selesai juga
+        // memajukan project ke tahap processing.
+        abort_if($session->status === 'cancelled', 403);
+
         $data = $request->validate([
             'shot_count' => ['nullable', 'integer', 'min:0'],
             'weather_note' => ['nullable', 'string', 'max:150'],
@@ -274,6 +278,13 @@ class CaptureSessionController extends Controller
         Request $request,
         ?CaptureSession $session,
     ): void {
+        // Laravel tetap menjalankan callback after walau aturan date sudah
+        // gagal, jadi tanpa penjaga ini Carbon::parse menerima input mentah
+        // seperti "besok" dan melempar — 500, bukan 422.
+        if ($validator->errors()->isNotEmpty()) {
+            return;
+        }
+
         $ids = $request->input('equipment', []);
         $scheduledAt = $request->input('scheduled_at');
 

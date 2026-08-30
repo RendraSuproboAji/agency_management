@@ -19,9 +19,8 @@ use Illuminate\Support\Facades\Mail;
  *
  * Dikirim langsung tanpa queue. Volumenya beberapa email per hari, jadi
  * menambah container worker hanya untuk ini tidak sepadan; kalau SMTP mati,
- * perintahnya gagal dan bisa dijalankan ulang — baris log baru ditulis setelah
- * email terkirim, sehingga pengulangan tidak menggandakan email yang sudah
- * berhasil.
+ * perintahnya gagal dan bisa dijalankan ulang tanpa menggandakan email yang
+ * sudah berhasil — lihat send() untuk cara log dan pengiriman disinkronkan.
  */
 class RemindersSend extends Command
 {
@@ -80,7 +79,7 @@ class RemindersSend extends Command
     {
         $projects = Project::query()
             ->with('client', 'owner')
-            ->whereNotIn('status', ['delivered', 'cancelled'])
+            ->whereNotIn('status', ['delivered', 'archived'])
             ->whereDate('deadline', $today->copy()->addDays(3))
             ->get();
 
@@ -107,7 +106,7 @@ class RemindersSend extends Command
     {
         $invoices = Invoice::query()
             ->with('project.client', 'payments')
-            ->whereNotIn('status', ['draft', 'paid', 'cancelled'])
+            ->whereNotIn('status', ['draft', 'paid', 'void'])
             ->whereDate('due_at', $today)
             ->get()
             ->filter(fn (Invoice $invoice) => $invoice->outstanding() > 0);
@@ -134,9 +133,10 @@ class RemindersSend extends Command
     /**
      * Kirim satu pengingat bila belum pernah dikirim hari ini.
      *
-     * Baris log ditulis lebih dulu di dalam transaksi implisit unique index:
-     * kalau dua proses berjalan bersamaan, yang kedua kalah di index dan
-     * berhenti tanpa mengirim.
+     * Baris log ditulis lebih dulu supaya unique index menengahi dua proses
+     * yang berjalan bersamaan — yang kedua kalah di index dan berhenti tanpa
+     * mengirim. Bila pengirimannya sendiri gagal, barisnya dihapus lagi
+     * sehingga menjalankan ulang perintahnya benar-benar mencoba lagi.
      */
     private function send(string $type, Model $target, Carbon $today, ?string $to, ReminderMail $mail): int
     {
@@ -145,7 +145,7 @@ class RemindersSend extends Command
         }
 
         try {
-            ReminderLog::create([
+            $log = ReminderLog::create([
                 'type' => $type,
                 'remindable_type' => $target->getMorphClass(),
                 'remindable_id' => $target->getKey(),
@@ -155,7 +155,13 @@ class RemindersSend extends Command
             return 0;
         }
 
-        Mail::to($to)->send($mail);
+        try {
+            Mail::to($to)->send($mail);
+        } catch (\Throwable $exception) {
+            $log->delete();
+
+            throw $exception;
+        }
 
         return 1;
     }

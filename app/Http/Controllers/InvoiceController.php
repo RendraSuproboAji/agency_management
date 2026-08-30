@@ -146,7 +146,7 @@ class InvoiceController extends Controller
         return $request->validate([
             'quotation_id' => [
                 'nullable',
-                Rule::exists('quotations', 'id')->where('project_id', $project->id),
+                Rule::exists('quotations', 'id')->where('project_id', $project->id)->whereNull('deleted_at'),
             ],
             'issued_at' => ['required', 'date'],
             'due_at' => ['nullable', 'date', 'after_or_equal:issued_at'],

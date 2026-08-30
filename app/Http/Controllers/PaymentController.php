@@ -45,8 +45,12 @@ class PaymentController extends Controller
         $this->authorizePayment($request, $project, $invoice);
 
         $data = $request->validate([
-            'paid_at' => ['required', 'date'],
-            'amount' => ['required', 'numeric', 'min:0.01'],
+            // Pembayaran tidak boleh mendahului tanggal terbit invoice-nya.
+            'paid_at' => ['required', 'date', 'after_or_equal:'.$invoice->issued_at->toDateString()],
+            // Batas atas sisa tagihan: tanpa ini invoice bisa "lunas" oleh
+            // nominal yang lebih besar dari nilainya, dan kelebihannya hilang
+            // karena outstanding() menjepit di nol.
+            'amount' => ['required', 'numeric', 'min:0.01', 'max:'.$invoice->outstanding()],
             'method' => ['required', 'in:'.implode(',', Payment::METHODS)],
             'reference' => ['nullable', 'string', 'max:100'],
             'note' => ['nullable', 'string', 'max:255'],

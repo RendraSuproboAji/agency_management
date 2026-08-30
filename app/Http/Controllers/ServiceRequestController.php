@@ -10,6 +10,7 @@ use App\Support\Slug;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -76,7 +77,9 @@ class ServiceRequestController extends Controller
         }
 
         $data = $request->validate([
-            'client_id' => ['nullable', 'exists:clients,id'],
+            // convert() memakai Client::findOrFail yang menyaring arsip; tanpa
+            // whereNull di sini validasi lolos lalu konversinya 404.
+            'client_id' => ['nullable', Rule::exists('clients', 'id')->whereNull('deleted_at')],
             'title' => ['required', 'string', 'max:150'],
         ]);
 

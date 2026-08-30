@@ -12,6 +12,7 @@ use App\Support\Archive;
 use App\Support\Slug;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -236,7 +237,7 @@ class ProjectController extends Controller
     private function validated(Request $request): array
     {
         return $request->validate([
-            'client_id' => ['required', 'exists:clients,id'],
+            'client_id' => ['required', Rule::exists('clients', 'id')->whereNull('deleted_at')],
             'owner_id' => ['nullable', 'exists:users,id'],
             'title' => ['required', 'string', 'max:150'],
             'brief' => ['nullable', 'string'],

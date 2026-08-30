@@ -96,10 +96,16 @@ class DeliverableController extends Controller
     {
         $this->authorizeDeliverable($request, $project, $deliverable);
 
-        $deliverable->update([
+        // Menyamai jalur portal: hanya yang sudah diserahkan yang dinilai.
+        abort_unless(in_array($deliverable->status, ['submitted', 'revision'], true), 403);
+
+        $data = $request->validate([
+            'review_note' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $deliverable->update($data + [
             'status' => 'approved',
             'approved_at' => now(),
-            'review_note' => $request->input('review_note'),
         ]);
 
         ActivityLogger::log($deliverable, 'deliverable.approved', 'Menyetujui deliverable "'.$deliverable->title.'" v'.$deliverable->version.'.');
