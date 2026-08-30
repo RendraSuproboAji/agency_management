@@ -45,7 +45,7 @@ export default function AppLayout({ title, children }) {
                 <Link href="/" className="flex items-center gap-2 text-ink no-underline">
                     <span className="grid h-9 w-9 place-items-center rounded-lg bg-accent text-xs font-bold text-accent-ink">3D</span>
                     <span>
-                        <strong className="block">Agency Management</strong>
+                        <strong className="block max-sm:text-sm max-sm:leading-tight">Agency Management</strong>
                         <small className="block text-xs text-muted max-sm:hidden">Manajemen jasa immersive 3D reconstruction</small>
                     </span>
                 </Link>

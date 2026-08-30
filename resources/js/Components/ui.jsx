@@ -98,9 +98,14 @@ export function Td({ className = '', children, ...props }) {
     return (
         <td
             className={
-                'border-b border-line px-2 py-2 align-top ' +
+                // break-words wajib: email dan slug panjang tidak punya titik
+                // patah alami, jadi tanpa ini teksnya terpotong di tepi sel
+                // tanpa membuat halaman meluber — cacat yang lolos dari tes
+                // gulir menyamping dan hanya terlihat kalau dilihat.
+                'border-b border-line px-2 py-2 align-top break-words ' +
                 // Kartu: label kolom muncul di kiri, nilainya di kanan.
                 "max-sm:flex max-sm:justify-between max-sm:gap-3 max-sm:border-0 max-sm:px-3 max-sm:py-1 " +
+                "max-sm:[&>*]:min-w-0 " +
                 "max-sm:before:shrink-0 max-sm:before:text-[0.7rem] max-sm:before:uppercase max-sm:before:tracking-wide " +
                 "max-sm:before:text-muted max-sm:before:content-[attr(data-label)] " +
                 className
