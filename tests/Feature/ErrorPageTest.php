@@ -26,7 +26,7 @@ class ErrorPageTest extends TestCase
     public function test_a_forbidden_page_explains_itself_in_indonesian(): void
     {
         $outsider = User::factory()->create(['role' => 'staff']);
-        $project = Project::factory()->create();
+        $project = Project::factory()->create(['owner_id' => User::factory()->create(['role' => 'staff'])]);
 
         $this->actingAs($outsider)
             ->get(route('projects.edit', $project))

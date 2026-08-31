@@ -38,7 +38,7 @@ export default function Index({ projects, clients, filters, statuses }) {
                         <Td><Link href={`/projects/${project.slug}`} className="text-accent">{project.title}</Link></Td>
                         <Td><Link href={`/clients/${project.client_slug}`} className="text-accent">{project.client_name}</Link></Td>
                         <Td>{project.service_type}</Td>
-                        <Td>{project.owner_name ?? '—'}</Td>
+                        <Td>{project.owner_name ?? <Badge status="pic kosong" />}</Td>
                         <Td><Badge status={project.status} /></Td>
                         <Td>{project.deadline ?? '—'}</Td>
                     </tr>

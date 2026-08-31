@@ -67,7 +67,7 @@ class ProjectSceneTest extends TestCase
 
     public function test_a_staff_member_who_is_not_on_the_project_cannot_add_a_scene(): void
     {
-        $project = Project::factory()->create();
+        $project = Project::factory()->create(['owner_id' => User::factory()->create(['role' => 'staff'])]);
         $outsider = User::factory()->create(['role' => 'staff']);
 
         $this->actingAs($outsider)

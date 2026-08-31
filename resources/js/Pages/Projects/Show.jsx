@@ -34,7 +34,15 @@ export default function Show({ project, canManage, statuses, billed, paid, rawSi
 
             <Panel>
                 <DetailList items={[
-                    { label: 'PIC', value: project.owner_name },
+                    {
+                        label: 'PIC',
+                        // Project tanpa PIC bisa dikelola staf mana pun, jadi
+                        // kekosongannya perlu terbaca — bukan sekadar '—'.
+                        value: project.owner_name ?? <>
+                            <Badge status="pic kosong" />
+                            <span className="mt-1 block text-xs text-muted">Bisa dikelola semua staf.</span>
+                        </>,
+                    },
                     { label: 'Deadline', value: project.deadline },
                     { label: 'Budget', value: project.budget ? <Money amount={project.budget} /> : null },
                     { label: 'Lokasi', value: project.site_location },

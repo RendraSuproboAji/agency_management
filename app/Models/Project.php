@@ -100,7 +100,13 @@ class Project extends Model
     /** Boleh diubah oleh admin, atau oleh staff yang jadi penanggung jawab. */
     public function isManageableBy(User $user): bool
     {
-        return $user->isAdmin() || $this->owner_id === $user->id;
+        // Project tanpa PIC terbuka untuk seluruh staf. Akun staf dihapus
+        // permanen dan owner_id-nya jatuh ke null; tanpa baris ini project
+        // itu membeku — terlihat oleh semua orang, tak tersentuh siapa pun
+        // kecuali admin.
+        return $user->isAdmin()
+            || $this->owner_id === null
+            || $this->owner_id === $user->id;
     }
 
     public function scopeStatus(Builder $query, ?string $status): Builder
