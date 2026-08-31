@@ -102,7 +102,13 @@ class CaptureSessionController extends Controller
     private function month(?string $value): Carbon
     {
         try {
-            return $value ? Carbon::createFromFormat('Y-m', $value)->startOfMonth() : Carbon::now()->startOfMonth();
+            // Harus menyertakan tanggal. createFromFormat('Y-m', ...)
+            // mempertahankan tanggal hari ini, jadi dilihat pada tanggal 31
+            // sebuah bulan berisi 30 hari meluber ke bulan berikutnya —
+            // dan Februari meleset sampai tiga hari.
+            return $value
+                ? Carbon::createFromFormat('Y-m-d', $value.'-01')->startOfMonth()
+                : Carbon::now()->startOfMonth();
         } catch (\Throwable) {
             return Carbon::now()->startOfMonth();
         }
