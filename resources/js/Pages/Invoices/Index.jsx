@@ -30,7 +30,12 @@ export default function Index({ invoices, filters, statuses }) {
                         </Td>
                         <Td>{invoice.project_title}</Td>
                         <Td>{invoice.client_name}</Td>
-                        <Td>{invoice.due_at ?? '—'}</Td>
+                        <Td>
+                            {invoice.due_at ?? '—'}
+                            {invoice.days_overdue > 0 && (
+                                <span className="block text-xs text-danger">lewat {invoice.days_overdue} hari</span>
+                            )}
+                        </Td>
                         <Td><Money amount={invoice.amount} /></Td>
                         <Td><Money amount={invoice.outstanding} /></Td>
                         <Td><Badge status={invoice.status} /></Td>

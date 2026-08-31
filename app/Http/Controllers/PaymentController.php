@@ -27,6 +27,7 @@ class PaymentController extends Controller
         $invoices->through(fn (Invoice $invoice) => [
             ...$invoice->only(['id', 'number', 'status', 'amount']),
             'due_at' => $invoice->due_at?->format('d M Y'),
+            'days_overdue' => $invoice->daysOverdue(),
             'outstanding' => $invoice->outstanding(),
             'project_title' => $invoice->project->title,
             'project_slug' => $invoice->project->slug,

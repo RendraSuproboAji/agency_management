@@ -79,6 +79,7 @@ class ProjectController extends Controller
                         'issued_at' => $invoice->issued_at->format('d M Y'),
                         'amount' => (float) $invoice->amount,
                         'outstanding' => $invoice->outstanding(),
+                        'days_overdue' => $invoice->daysOverdue(),
                         'print_url' => route('portal.invoices.print', [$project, $invoice]),
                         // Klien berhak melihat pembayarannya sendiri sudah
                         // tercatat; datanya memang sudah dimuat sejak awal.

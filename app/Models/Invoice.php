@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
 #[Fillable([
     'project_id', 'quotation_id', 'number', 'issued_at', 'due_at',
@@ -87,5 +88,34 @@ class Invoice extends Model
     public function scopeUnsettled(Builder $query): Builder
     {
         return $query->whereIn('status', ['sent', 'partial']);
+    }
+
+    /**
+     * Lewat jatuh tempo sengaja dihitung, bukan disimpan sebagai status.
+     *
+     * Sebuah invoice bisa sekaligus `partial` dan lewat tempo; menjadikannya
+     * status tersimpan akan menghapus informasi pembayaran sebagiannya, dan
+     * menuntut perintah terjadwal hanya untuk membalik status — yang berarti
+     * datanya bisa basi kalau perintah itu tidak jalan.
+     */
+    public function scopeOverdue(Builder $query): Builder
+    {
+        return $query->unsettled()
+            ->whereNotNull('due_at')
+            ->whereDate('due_at', '<', Carbon::today());
+    }
+
+    public function isOverdue(): bool
+    {
+        return $this->due_at
+            && $this->due_at->isBefore(Carbon::today())
+            && $this->outstanding() > 0
+            && ! in_array($this->status, ['draft', 'void', 'paid'], true);
+    }
+
+    /** Berapa hari lewat jatuh tempo; nol bila belum lewat. */
+    public function daysOverdue(): int
+    {
+        return $this->isOverdue() ? $this->due_at->diffInDays(Carbon::today()) : 0;
     }
 }

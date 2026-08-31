@@ -23,7 +23,7 @@ function Row({ href, title, meta }) {
 export default function Dashboard({
     statuses, countsByStatus, clientCount, activeProjectCount, newRequestCount,
     latestRequests, upcomingDeadlines, upcomingSessions, pendingDeliverables,
-    receivable, dueInvoices, runningJobs,
+    receivable, dueInvoices, overdueInvoices, overdueCount, overdueTotal, runningJobs,
 }) {
     return (
         <AppLayout title="Dashboard">
@@ -85,8 +85,23 @@ export default function Dashboard({
                 </Panel>
             )}
 
-            <Panel title="Tagihan jatuh tempo">
-                {dueInvoices.length === 0 && <p className="text-sm text-muted">Tidak ada tagihan berjalan.</p>}
+            {overdueCount > 0 && (
+                <Panel title={`Lewat jatuh tempo (${overdueCount})`}>
+                    <p className="mb-2 text-sm text-danger">
+                        Total belum tertagih <Money amount={overdueTotal} />
+                    </p>
+                    {overdueInvoices.map((invoice) => (
+                        <Row key={invoice.id} href={`/projects/${invoice.project_slug}/invoices/${invoice.id}`}
+                             title={`${invoice.number} · ${invoice.client_name}`}
+                             meta={<span className="text-danger">
+                                 lewat {invoice.days_overdue} hari · sisa <Money amount={invoice.outstanding} />
+                             </span>} />
+                    ))}
+                </Panel>
+            )}
+
+            <Panel title="Akan jatuh tempo">
+                {dueInvoices.length === 0 && <p className="text-sm text-muted">Tidak ada tagihan yang akan jatuh tempo.</p>}
                 {dueInvoices.map((invoice) => (
                     <Row key={invoice.id} href={`/projects/${invoice.project_slug}/invoices/${invoice.id}`}
                          title={`${invoice.number} · ${invoice.client_name}`}

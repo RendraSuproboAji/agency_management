@@ -113,6 +113,9 @@ export default function Project({ project, statuses }) {
                             <Td>
                                 <Money amount={doc.amount} />
                                 {doc.kind === 'invoice' && <><br /><small className="text-muted">sisa <Money amount={doc.outstanding} /></small></>}
+                                {doc.days_overdue > 0 && (
+                                    <><br /><small className="text-danger">lewat jatuh tempo {doc.days_overdue} hari</small></>
+                                )}
                             </Td>
                             <Td>
                                 <Badge status={doc.status} />
