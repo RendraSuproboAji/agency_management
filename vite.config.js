@@ -8,6 +8,14 @@ export default defineConfig({
     resolve: {
         alias: {
             '@': fileURLToPath(new URL('./resources/js', import.meta.url)),
+            // Preact lewat lapisan compat-nya. react-dom sendiri 96 kB gzip
+            // dari total 130, dan aplikasi ini hanya memakai useState serta
+            // useForm — kemampuan React 19 selebihnya tidak terpakai sama
+            // sekali. Kode halaman tetap ditulis sebagai React biasa.
+            'react': 'preact/compat',
+            'react-dom': 'preact/compat',
+            'react-dom/test-utils': 'preact/test-utils',
+            'react/jsx-runtime': 'preact/jsx-runtime',
         },
     },
     plugins: [
@@ -26,8 +34,7 @@ export default defineConfig({
                 // 132 kB gzip untuk pengunjung lama; dipisah, yang kedaluwarsa
                 // hanya chunk aplikasi yang beberapa kB.
                 manualChunks: (id) => (
-                    id.includes('/node_modules/react') ||
-                    id.includes('/node_modules/scheduler') ||
+                    id.includes('/node_modules/preact') ||
                     id.includes('/node_modules/@inertiajs')
                         ? 'vendor'
                         : undefined

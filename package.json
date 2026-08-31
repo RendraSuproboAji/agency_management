@@ -15,7 +15,6 @@
     },
     "dependencies": {
         "@inertiajs/react": "^2.0.0",
-        "react": "^19.0.0",
-        "react-dom": "^19.0.0"
+        "preact": "^10.29.8"
     }
 }
