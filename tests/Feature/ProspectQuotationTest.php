@@ -131,4 +131,54 @@ class ProspectQuotationTest extends TestCase
         $this->actingAs($admin)->get(route('requests.show', $serviceRequest))
             ->assertInertia(fn ($page) => $page->has('serviceRequest.quotations', 1));
     }
+
+    public function test_a_request_with_a_quotation_cannot_be_deleted(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $serviceRequest = ServiceRequest::factory()->create();
+
+        $this->actingAs($admin)->post(route('requests.quotations.store', $serviceRequest), $this->payload());
+        $quotation = Quotation::firstOrFail();
+
+        $this->actingAs($admin)
+            ->delete(route('requests.destroy', $serviceRequest))
+            ->assertSessionHasErrors('request');
+
+        // Tanpa penjaga ini penawarannya kehilangan project dan permintaan
+        // sekaligus: tidak muncul di layar mana pun dan nomornya hangus.
+        $this->assertDatabaseHas('service_requests', ['id' => $serviceRequest->id]);
+        $this->assertSame($serviceRequest->id, $quotation->fresh()->service_request_id);
+    }
+
+    /**
+     * Penawaran yang sudah diarsipkan pun menahan penghapusan: kalau tidak,
+     * arsipkan-lalu-hapus menghasilkan baris yatim yang sama, hanya
+     * tersembunyi, dan bisa dipulihkan kemudian ke keadaan rusak.
+     */
+    public function test_even_an_archived_quotation_holds_the_request_in_place(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $serviceRequest = ServiceRequest::factory()->create();
+
+        $this->actingAs($admin)->post(route('requests.quotations.store', $serviceRequest), $this->payload());
+        Quotation::firstOrFail()->delete();
+
+        $this->actingAs($admin)
+            ->delete(route('requests.destroy', $serviceRequest))
+            ->assertSessionHasErrors('request');
+
+        $this->assertDatabaseHas('service_requests', ['id' => $serviceRequest->id]);
+    }
+
+    public function test_a_request_without_quotations_can_still_be_deleted(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $serviceRequest = ServiceRequest::factory()->create();
+
+        $this->actingAs($admin)
+            ->delete(route('requests.destroy', $serviceRequest))
+            ->assertRedirect(route('requests.index'));
+
+        $this->assertDatabaseMissing('service_requests', ['id' => $serviceRequest->id]);
+    }
 }

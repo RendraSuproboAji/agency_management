@@ -138,6 +138,22 @@ class ServiceRequestController extends Controller
 
     public function destroy(ServiceRequest $serviceRequest): RedirectResponse
     {
+        // Permintaan dihapus permanen, sementara service_request_id pada
+        // penawaran memakai nullOnDelete. Tanpa penjaga ini penawarannya
+        // kehilangan project dan permintaan sekaligus: penerimanya kosong,
+        // tidak muncul di layar mana pun, dan nomor dokumennya hangus.
+        //
+        // withTrashed() disengaja — penawaran yang sudah diarsipkan pun
+        // menahan penghapusan, kalau tidak arsipkan-lalu-hapus menghasilkan
+        // baris yatim yang sama, hanya tersembunyi.
+        if ($serviceRequest->quotations()->withTrashed()->exists()) {
+            return back()->withErrors([
+                'request' => 'Request ini sudah punya penawaran, jadi tidak bisa dihapus. '.
+                    'Konversi jadi project supaya penawarannya ikut pindah, atau hapus permanen '.
+                    'penawarannya lebih dulu dari halaman Arsip.',
+            ]);
+        }
+
         $serviceRequest->delete();
 
         return redirect()->route('requests.index')->with('status', 'Request dihapus.');

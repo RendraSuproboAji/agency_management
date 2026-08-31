@@ -18,7 +18,9 @@ export default function Show({ serviceRequest, clients, statuses }) {
                 title={serviceRequest.company || serviceRequest.name}
                 subtitle={<>Masuk {serviceRequest.created_at} <Badge status={serviceRequest.status} /></>}
             >
-                {auth.user?.is_admin && (
+                {/* Permintaan yang sudah punya penawaran tidak bisa dihapus —
+                    tombolnya disembunyikan supaya penolakannya tidak mengejutkan. */}
+                {auth.user?.is_admin && serviceRequest.quotations.length === 0 && (
                     <Button variant="danger"
                             onClick={() => window.confirm('Hapus request ini?') && router.delete(`/requests/${serviceRequest.id}`)}>
                         Hapus
