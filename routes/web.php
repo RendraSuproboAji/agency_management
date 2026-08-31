@@ -69,6 +69,13 @@ Route::middleware('auth:web')->group(function () {
     // Request masuk dari form publik
     Route::get('/requests', [ServiceRequestController::class, 'index'])->name('requests.index');
     Route::get('/requests/{serviceRequest}', [ServiceRequestController::class, 'show'])->name('requests.show');
+    // Penawaran untuk calon klien: menempel pada permintaan yang masuk,
+    // tanpa perlu membuat data klien dan project lebih dulu.
+    Route::get('/requests/{serviceRequest}/quotations/create', [QuotationController::class, 'createForRequest'])->name('requests.quotations.create');
+    Route::post('/requests/{serviceRequest}/quotations', [QuotationController::class, 'storeForRequest'])->name('requests.quotations.store');
+    Route::get('/requests/{serviceRequest}/quotations/{quotation}/print', [QuotationController::class, 'printForRequest'])->name('requests.quotations.print');
+    Route::delete('/requests/{serviceRequest}/quotations/{quotation}', [QuotationController::class, 'destroyForRequest'])->name('requests.quotations.destroy');
+
     Route::put('/requests/{serviceRequest}/status', [ServiceRequestController::class, 'updateStatus'])->name('requests.status');
     Route::post('/requests/{serviceRequest}/convert', [ServiceRequestController::class, 'convert'])->name('requests.convert');
     Route::delete('/requests/{serviceRequest}', [ServiceRequestController::class, 'destroy'])

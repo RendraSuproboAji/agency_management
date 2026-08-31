@@ -32,6 +32,8 @@ class SmokeTest extends TestCase
     private const SKIPPED = [
         'storage.local',        // rute bawaan framework
         'quotations.print',     // dijamin PrintDocumentTest
+        // Penawaran calon klien punya binding sendiri; dijamin ProspectQuotationTest.
+        'requests.quotations.print',
         'invoices.print',
         'portal.login',         // alur portal dijamin PortalAuthTest
         'portal.dashboard',

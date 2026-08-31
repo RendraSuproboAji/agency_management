@@ -41,7 +41,7 @@ class ServiceRequestController extends Controller
 
     public function show(ServiceRequest $serviceRequest): Response
     {
-        $serviceRequest->load('convertedProject');
+        $serviceRequest->load('convertedProject', 'quotations.items');
 
         return Inertia::render('Requests/Show', [
             'serviceRequest' => [
@@ -49,6 +49,12 @@ class ServiceRequestController extends Controller
                 'service_type' => str_replace('_', ' ', $serviceRequest->service_type),
                 'created_at' => $serviceRequest->created_at->format('d M Y H:i'),
                 'converted_project' => $serviceRequest->convertedProject?->only(['slug', 'title']),
+                'quotations' => $serviceRequest->quotations->map(fn ($quotation) => [
+                    ...$quotation->only(['id', 'number', 'status']),
+                    'issued_at' => $quotation->issued_at->format('d M Y'),
+                    'total' => $quotation->total(),
+                    'print_url' => route('requests.quotations.print', [$serviceRequest, $quotation]),
+                ]),
             ],
             'clients' => Client::orderBy('name')->get(['id', 'name']),
             'statuses' => ServiceRequest::STATUSES,
@@ -106,6 +112,14 @@ class ServiceRequestController extends Controller
                 'status' => 'lead',
                 'site_location' => $serviceRequest->site_location,
                 'area_sqm' => $serviceRequest->area_sqm,
+            ]);
+
+            // Penawaran yang sudah dikirim ke calon klien ikut pindah ke
+            // project baru, supaya riwayatnya utuh dan tidak ada penawaran
+            // yang menggantung tanpa induk.
+            $serviceRequest->quotations()->update([
+                'project_id' => $project->id,
+                'service_request_id' => null,
             ]);
 
             $serviceRequest->update([

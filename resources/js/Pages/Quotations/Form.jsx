@@ -4,7 +4,13 @@ import { Button, ButtonLink, Field, Money, Table, Td, inputClass } from '@/Compo
 
 const EMPTY_ITEM = { description: '', qty: 1, unit: 'paket', unit_price: '' };
 
-export default function Form({ project, quotation, statuses }) {
+export default function Form({ project, serviceRequest, quotation, statuses }) {
+    // Satu form melayani dua konteks: penawaran untuk project yang sudah ada,
+    // dan penawaran untuk calon klien yang baru mengirim permintaan.
+    const target = project
+        ? { label: project.title, action: `/projects/${project.slug}/quotations`, back: `/projects/${project.slug}` }
+        : { label: serviceRequest.name, action: `/requests/${serviceRequest.id}/quotations`, back: `/requests/${serviceRequest.id}` };
+
     const editing = Boolean(quotation.id);
 
     const { data, setData, post, put, processing, errors } = useForm({
@@ -26,14 +32,14 @@ export default function Form({ project, quotation, statuses }) {
     return (
         <AppLayout title={editing ? 'Ubah penawaran' : 'Penawaran baru'}>
             <h1 className="mb-4 text-2xl font-semibold">
-                {editing ? `Ubah ${quotation.number}` : 'Penawaran baru'} — {project.title}
+                {editing ? `Ubah ${quotation.number}` : 'Penawaran baru'} — {target.label}
             </h1>
 
             <form onSubmit={(e) => {
                 e.preventDefault();
                 editing
-                    ? put(`/projects/${project.slug}/quotations/${quotation.id}`)
-                    : post(`/projects/${project.slug}/quotations`);
+                    ? put(`${target.action}/${quotation.id}`)
+                    : post(target.action);
             }}>
                 <div className="gap-x-4 sm:grid sm:grid-cols-2">
                     <Field label="Tanggal terbit *" error={errors.issued_at}>
@@ -93,7 +99,7 @@ export default function Form({ project, quotation, statuses }) {
 
                 <div className="mt-4 flex gap-2">
                     <Button type="submit" variant="primary" disabled={processing}>Simpan</Button>
-                    <ButtonLink href={`/projects/${project.slug}`} variant="ghost">Batal</ButtonLink>
+                    <ButtonLink href={target.back} variant="ghost">Batal</ButtonLink>
                 </div>
             </form>
         </AppLayout>

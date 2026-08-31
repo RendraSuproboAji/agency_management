@@ -1,7 +1,7 @@
 import { Link, router, useForm, usePage } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import { useServerState } from '@/useServerState';
-import { Badge, Button, DetailList, Field, PageHead, Panel, inputClass } from '@/Components/ui';
+import { Badge, Button, ButtonLink, DetailList, Field, Money, PageHead, Panel, Table, Td, inputClass } from '@/Components/ui';
 
 export default function Show({ serviceRequest, clients, statuses }) {
     const { auth } = usePage().props;
@@ -49,6 +49,34 @@ export default function Show({ serviceRequest, clients, statuses }) {
                     </select>
                     <Button type="submit">Simpan status</Button>
                 </form>
+            </Panel>
+
+            <Panel
+                title="Penawaran"
+                actions={serviceRequest.status !== 'converted' && (
+                    <ButtonLink href={`/requests/${serviceRequest.id}/quotations/create`} small variant="primary">
+                        Buat penawaran
+                    </ButtonLink>
+                )}
+            >
+                <p className="mb-2 text-sm text-muted">
+                    Penawaran bisa dikirim ke calon klien tanpa membuat data klien dan project lebih dulu.
+                    Saat request ini dikonversi, penawarannya ikut pindah ke project barunya.
+                </p>
+
+                <Table head={['Nomor', 'Tanggal', 'Nilai', 'Status', '']} empty="Belum ada penawaran.">
+                    {serviceRequest.quotations.map((quotation) => (
+                        <tr key={quotation.id}>
+                            <Td>{quotation.number}</Td>
+                            <Td>{quotation.issued_at}</Td>
+                            <Td><Money amount={quotation.total} /></Td>
+                            <Td><Badge status={quotation.status} /></Td>
+                            <Td>
+                                <a href={quotation.print_url} className="text-accent">Cetak</a>
+                            </Td>
+                        </tr>
+                    ))}
+                </Table>
             </Panel>
 
             <Panel title="Konversi jadi project">

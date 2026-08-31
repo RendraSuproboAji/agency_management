@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['project_id', 'number', 'issued_at', 'valid_until', 'tax_percent', 'status', 'notes'])]
+#[Fillable(['project_id', 'service_request_id', 'number', 'issued_at', 'valid_until', 'tax_percent', 'status', 'notes'])]
 class Quotation extends Model
 {
     /** @use HasFactory<QuotationFactory> */
@@ -30,6 +30,50 @@ class Quotation extends Model
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);
+    }
+
+    public function serviceRequest(): BelongsTo
+    {
+        return $this->belongsTo(ServiceRequest::class);
+    }
+
+    /**
+     * Penerima penawaran, dari project-nya atau dari permintaan yang masuk.
+     *
+     * Satu sumber supaya halaman cetak tidak perlu tahu penawaran ini milik
+     * klien yang sudah ada atau calon klien.
+     *
+     * @return array<string, string|null>
+     */
+    public function recipient(): array
+    {
+        if ($this->project) {
+            $client = $this->project->client;
+
+            return [
+                'name' => $client->name,
+                'contact_name' => $client->contact_name,
+                'address' => $client->address,
+                'email' => $client->email,
+                'subject' => $this->project->title,
+                'service_type' => str_replace('_', ' ', $this->project->service_type),
+                'site_location' => $this->project->site_location,
+                'area_sqm' => $this->project->area_sqm,
+            ];
+        }
+
+        $request = $this->serviceRequest;
+
+        return [
+            'name' => $request?->company ?: $request?->name,
+            'contact_name' => $request?->company ? $request->name : null,
+            'address' => null,
+            'email' => $request?->email,
+            'subject' => 'Permintaan '.($request?->company ?: $request?->name),
+            'service_type' => str_replace('_', ' ', (string) $request?->service_type),
+            'site_location' => $request?->site_location,
+            'area_sqm' => $request?->area_sqm,
+        ];
     }
 
     public function items(): HasMany

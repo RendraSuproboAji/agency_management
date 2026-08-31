@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'name', 'company', 'email', 'phone', 'service_type',
@@ -44,5 +45,10 @@ class ServiceRequest extends Model
                 ->orWhere('email', 'like', "%{$term}%")
                 ->orWhere('site_location', 'like', "%{$term}%");
         });
+    }
+
+    public function quotations(): HasMany
+    {
+        return $this->hasMany(Quotation::class);
     }
 }

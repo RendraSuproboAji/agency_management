@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Project;
 use App\Models\Quotation;
+use App\Models\ServiceRequest;
 use App\Support\ActivityLogger;
 use App\Support\DocumentNumber;
 use Illuminate\Http\RedirectResponse;
@@ -153,6 +154,73 @@ class QuotationController extends Controller
         foreach ($items as $item) {
             $quotation->items()->create($item);
         }
+    }
+
+    // --- Penawaran untuk calon klien -------------------------------------
+    //
+    // Penawaran boleh ditujukan ke permintaan yang masuk lewat form publik,
+    // tanpa perlu membuat data klien dan project lebih dulu. Metode-metode
+    // berikut memakai ulang validasi, penomoran, dan penyusunan item yang
+    // sama dengan penawaran project.
+
+    public function createForRequest(ServiceRequest $serviceRequest): Response
+    {
+        return Inertia::render('Quotations/Form', [
+            'serviceRequest' => $this->requestSummary($serviceRequest),
+            'quotation' => [
+                'issued_at' => now()->toDateString(),
+                'valid_until' => now()->addDays(14)->toDateString(),
+                'tax_percent' => 11,
+                'status' => 'draft',
+                'items' => [],
+            ],
+            'statuses' => Quotation::STATUSES,
+        ]);
+    }
+
+    public function storeForRequest(Request $request, ServiceRequest $serviceRequest): RedirectResponse
+    {
+        $data = $this->validated($request);
+
+        $quotation = DocumentNumber::assign(Quotation::class, 'QUO', function (string $number) use ($serviceRequest, $data) {
+            $quotation = $serviceRequest->quotations()->create($data + ['number' => $number]);
+
+            $this->syncItems($quotation, $data['items']);
+
+            return $quotation;
+        });
+
+        return redirect()->route('requests.show', $serviceRequest)
+            ->with('status', 'Penawaran '.$quotation->number.' dibuat untuk calon klien.');
+    }
+
+    public function printForRequest(ServiceRequest $serviceRequest, Quotation $quotation): View
+    {
+        abort_unless($quotation->service_request_id === $serviceRequest->id, 404);
+
+        return view('quotations.print', [
+            'quotation' => $quotation->load('items', 'serviceRequest'),
+            'backUrl' => route('requests.show', $serviceRequest),
+        ]);
+    }
+
+    public function destroyForRequest(ServiceRequest $serviceRequest, Quotation $quotation): RedirectResponse
+    {
+        abort_unless($quotation->service_request_id === $serviceRequest->id, 404);
+
+        $quotation->delete();
+
+        return back()->with('status', 'Penawaran diarsipkan.');
+    }
+
+    /** @return array<string, mixed> */
+    private function requestSummary(ServiceRequest $serviceRequest): array
+    {
+        return [
+            'id' => $serviceRequest->id,
+            'name' => $serviceRequest->company ?: $serviceRequest->name,
+            'contact_name' => $serviceRequest->name,
+        ];
     }
 
     /** @return array<string, mixed> */
