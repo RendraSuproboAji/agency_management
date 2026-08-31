@@ -1,4 +1,5 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
+import { ThemeToggle } from '@/Components/ui';
 import { useEffect, useState } from 'react';
 
 const NAV = [
@@ -54,6 +55,7 @@ export default function AppLayout({ title, children }) {
                     <Link href="/profile" className="hidden text-sm text-muted hover:text-accent sm:inline">
                         {auth.user?.name} · {auth.user?.role}
                     </Link>
+                    <ThemeToggle />
                     <button
                         type="button"
                         onClick={() => router.post('/logout')}

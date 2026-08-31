@@ -1,5 +1,6 @@
 import { Link } from '@inertiajs/react';
 import { Children, cloneElement, isValidElement } from 'react';
+import { useTheme } from '@/useTheme';
 
 const BADGE_TONES = {
     ok: 'border-ok text-ok',
@@ -32,6 +33,24 @@ export function Badge({ status }) {
 
 export function Money({ amount }) {
     return `Rp ${new Intl.NumberFormat('id-ID').format(Math.round(Number(amount) || 0))}`;
+}
+
+
+export function ThemeToggle() {
+    const [theme, toggle] = useTheme();
+    const toDark = theme === 'light';
+
+    return (
+        <button
+            type="button"
+            onClick={toggle}
+            aria-label={toDark ? 'Ganti ke mode gelap' : 'Ganti ke mode terang'}
+            title={toDark ? 'Mode gelap' : 'Mode terang'}
+            className="cursor-pointer rounded-lg border border-line bg-transparent px-3 py-2 text-sm text-ink hover:border-accent"
+        >
+            {toDark ? '☾' : '☀'}
+        </button>
+    );
 }
 
 export function Panel({ title, actions, children }) {

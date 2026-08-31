@@ -1,8 +1,53 @@
 @import "tailwindcss";
 
-/* Palet lama dipertahankan sebagai token Tailwind supaya tampilan tidak
-   berubah drastis saat halaman berpindah dari Blade ke React. */
+/*
+ | Dua mode. Palet terang menjadi bawaan di @theme; palet gelap menimpanya
+ | lewat variabel yang sama, sekali untuk pengguna yang perangkatnya gelap dan
+ | sekali lagi untuk yang memilih sendiri lewat tombol.
+ |
+ | Seluruh pasangan warna diperiksa terhadap WCAG AA (4.5:1). Satu penyesuaian
+ | yang perlu dicatat: oranye merek #f60 di atas putih hanya 3:1 — terlalu
+ | rendah untuk teks — jadi mode terang memakai #c24f00 yang lebih pekat.
+ */
 @theme {
+    --color-ground: #f5f6f8;
+    --color-surface: #ffffff;
+    --color-raised: #eef0f3;
+    --color-line: #d5d9e0;
+    --color-ink: #1b1e24;
+    --color-muted: #5b6270;
+    --color-accent: #c24f00;
+    --color-accent-ink: #ffffff;
+    --color-ok: #1a7f37;
+    --color-warn: #8a6100;
+    --color-danger: #c0362c;
+}
+
+html {
+    color-scheme: light;
+}
+
+/* Mengikuti perangkat, kecuali pengguna memilih terang. */
+@media (prefers-color-scheme: dark) {
+    html:not([data-theme="light"]) {
+        color-scheme: dark;
+        --color-ground: #14161a;
+        --color-surface: #1c1f25;
+        --color-raised: #23272f;
+        --color-line: #333842;
+        --color-ink: #e8eaee;
+        --color-muted: #9aa2b1;
+        --color-accent: #f60;
+        --color-accent-ink: #14161a;
+        --color-ok: #3fb950;
+        --color-warn: #d29922;
+        --color-danger: #f2545b;
+    }
+}
+
+/* Pilihan pengguna selalu menang, ke arah mana pun. */
+html[data-theme="dark"] {
+    color-scheme: dark;
     --color-ground: #14161a;
     --color-surface: #1c1f25;
     --color-raised: #23272f;
@@ -16,8 +61,8 @@
     --color-danger: #f2545b;
 }
 
-html {
-    color-scheme: dark;
+html[data-theme="light"] {
+    color-scheme: light;
 }
 
 body {
