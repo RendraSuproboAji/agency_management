@@ -53,6 +53,7 @@ class ServiceRequestController extends Controller
                     ...$quotation->only(['id', 'number', 'status']),
                     'issued_at' => $quotation->issued_at->format('d M Y'),
                     'total' => $quotation->total(),
+                    'url' => route('requests.quotations.show', [$serviceRequest, $quotation]),
                     'print_url' => route('requests.quotations.print', [$serviceRequest, $quotation]),
                 ]),
             ],

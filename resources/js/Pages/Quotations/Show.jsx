@@ -2,37 +2,57 @@ import { Link, router, usePage } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import { Badge, Button, ButtonLink, Money, PageHead, Panel, Table, Td } from '@/Components/ui';
 
-export default function Show({ project, quotation, canManage }) {
+export default function Show({ project, serviceRequest, quotation, canManage }) {
     const { auth } = usePage().props;
-    const base = `/projects/${project.slug}/quotations/${quotation.id}`;
+
+    // Satu halaman melayani dua konteks, sama seperti form penawaran.
+    const target = project
+        ? {
+            base: `/projects/${project.slug}/quotations/${quotation.id}`,
+            parentUrl: `/projects/${project.slug}`,
+            parentLabel: project.title,
+        }
+        : {
+            base: `/requests/${serviceRequest.id}/quotations/${quotation.id}`,
+            parentUrl: `/requests/${serviceRequest.id}`,
+            parentLabel: serviceRequest.name,
+        };
 
     return (
         <AppLayout title={quotation.number}>
             <PageHead
                 title={quotation.number}
                 subtitle={<>
-                    <Link href={`/projects/${project.slug}`} className="text-accent">{project.title}</Link>
+                    <Link href={target.parentUrl} className="text-accent">{target.parentLabel}</Link>
                     {' · terbit '}{quotation.issued_at}
                     {quotation.valid_until && ` · berlaku s.d. ${quotation.valid_until}`}{' '}
                     <Badge status={quotation.status} />
                 </>}
             >
-                <a href={`${base}/print`} target="_blank" rel="noopener"
+                <a href={`${target.base}/print`} target="_blank" rel="noopener"
                    className="inline-block rounded-lg border border-line bg-raised px-3 py-2 text-sm text-ink no-underline hover:border-accent">
                     Cetak
                 </a>
-                {canManage && <ButtonLink href={`${base}/edit`}>Ubah</ButtonLink>}
+                {canManage && <ButtonLink href={`${target.base}/edit`}>Ubah</ButtonLink>}
                 {canManage && quotation.status !== 'accepted' && (
-                    <Button variant="primary" onClick={() => router.put(`${base}/accept`)}>Tandai disetujui</Button>
+                    <Button variant="primary" onClick={() => router.put(`${target.base}/accept`)}>Tandai disetujui</Button>
                 )}
-                {canManage && quotation.status === 'accepted' && (
+                {/* Menagih menuntut project, dan project menuntut klien. Jadi
+                    penawaran calon klien yang disetujui mengarah ke konversi
+                    dulu — setuju, jadi klien, baru ditagih. */}
+                {canManage && quotation.status === 'accepted' && project && (
                     <ButtonLink href={`/projects/${project.slug}/invoices/create?quotation=${quotation.id}`} variant="primary">
                         Buat invoice
                     </ButtonLink>
                 )}
+                {canManage && quotation.status === 'accepted' && ! project && (
+                    <ButtonLink href={target.parentUrl} variant="primary">
+                        Konversi jadi project
+                    </ButtonLink>
+                )}
                 {auth.user?.is_admin && (
                     <Button variant="danger"
-                            onClick={() => window.confirm('Arsipkan penawaran ini?') && router.delete(base)}>
+                            onClick={() => window.confirm('Arsipkan penawaran ini?') && router.delete(target.base)}>
                         Arsipkan
                     </Button>
                 )}

@@ -33,7 +33,9 @@ class SmokeTest extends TestCase
         'storage.local',        // rute bawaan framework
         'quotations.print',     // dijamin PrintDocumentTest
         // Penawaran calon klien punya binding sendiri; dijamin ProspectQuotationTest.
+        'requests.quotations.show',
         'requests.quotations.print',
+        'requests.quotations.edit',
         'invoices.print',
         'portal.login',         // alur portal dijamin PortalAuthTest
         'portal.dashboard',

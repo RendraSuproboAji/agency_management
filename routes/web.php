@@ -73,7 +73,11 @@ Route::middleware('auth:web')->group(function () {
     // tanpa perlu membuat data klien dan project lebih dulu.
     Route::get('/requests/{serviceRequest}/quotations/create', [QuotationController::class, 'createForRequest'])->name('requests.quotations.create');
     Route::post('/requests/{serviceRequest}/quotations', [QuotationController::class, 'storeForRequest'])->name('requests.quotations.store');
+    Route::get('/requests/{serviceRequest}/quotations/{quotation}', [QuotationController::class, 'showForRequest'])->name('requests.quotations.show');
     Route::get('/requests/{serviceRequest}/quotations/{quotation}/print', [QuotationController::class, 'printForRequest'])->name('requests.quotations.print');
+    Route::get('/requests/{serviceRequest}/quotations/{quotation}/edit', [QuotationController::class, 'editForRequest'])->name('requests.quotations.edit');
+    Route::put('/requests/{serviceRequest}/quotations/{quotation}', [QuotationController::class, 'updateForRequest'])->name('requests.quotations.update');
+    Route::put('/requests/{serviceRequest}/quotations/{quotation}/accept', [QuotationController::class, 'acceptForRequest'])->name('requests.quotations.accept');
     Route::delete('/requests/{serviceRequest}/quotations/{quotation}', [QuotationController::class, 'destroyForRequest'])->name('requests.quotations.destroy');
 
     Route::put('/requests/{serviceRequest}/status', [ServiceRequestController::class, 'updateStatus'])->name('requests.status');

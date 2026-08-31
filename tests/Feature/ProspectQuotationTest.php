@@ -181,4 +181,79 @@ class ProspectQuotationTest extends TestCase
 
         $this->assertDatabaseMissing('service_requests', ['id' => $serviceRequest->id]);
     }
+
+    private function makeQuotation(User $admin, ServiceRequest $serviceRequest): Quotation
+    {
+        $this->actingAs($admin)->post(route('requests.quotations.store', $serviceRequest), $this->payload());
+
+        return Quotation::firstOrFail();
+    }
+
+    public function test_a_prospect_quotation_can_be_edited_without_losing_its_number(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $serviceRequest = ServiceRequest::factory()->create();
+        $quotation = $this->makeQuotation($admin, $serviceRequest);
+        $number = $quotation->number;
+
+        $this->actingAs($admin)->get(route('requests.quotations.edit', [$serviceRequest, $quotation]))->assertOk();
+
+        $this->actingAs($admin)->put(
+            route('requests.quotations.update', [$serviceRequest, $quotation]),
+            ['items' => [['description' => 'Pemindaian diperluas', 'qty' => 2, 'unit' => 'paket', 'unit_price' => 15_000_000]]]
+            + $this->payload(),
+        )->assertRedirect(route('requests.quotations.show', [$serviceRequest, $quotation]));
+
+        $quotation->refresh()->load('items');
+
+        $this->assertSame($number, $quotation->number, 'menyunting tidak boleh mengubah nomor dokumen');
+        $this->assertSame('Pemindaian diperluas', $quotation->items->first()->description);
+        $this->assertSame(30_000_000.0, $quotation->subtotal());
+    }
+
+    public function test_marking_it_accepted_records_the_deal_without_creating_a_client(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $serviceRequest = ServiceRequest::factory()->create();
+        $quotation = $this->makeQuotation($admin, $serviceRequest);
+
+        $this->actingAs($admin)
+            ->put(route('requests.quotations.accept', [$serviceRequest, $quotation]))
+            ->assertRedirect();
+
+        $this->assertSame('accepted', $quotation->fresh()->status);
+        $this->assertSame(0, Client::count());
+        $this->assertSame(0, Project::count());
+    }
+
+    /**
+     * Menagih menuntut project, dan project menuntut klien. Penawaran calon
+     * klien yang disetujui karena itu mengarah ke konversi, bukan ke invoice.
+     */
+    public function test_a_prospect_quotation_offers_no_invoice_shortcut(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $serviceRequest = ServiceRequest::factory()->create();
+        $quotation = $this->makeQuotation($admin, $serviceRequest);
+
+        $this->actingAs($admin)->get(route('requests.quotations.show', [$serviceRequest, $quotation]))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Quotations/Show')
+                ->has('serviceRequest')
+                // Tanpa project, halaman itu tidak punya jalan menuju invoice.
+                ->missing('project'));
+    }
+
+    public function test_a_quotation_of_another_request_cannot_be_opened(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $serviceRequest = ServiceRequest::factory()->create();
+        $other = ServiceRequest::factory()->create();
+        $quotation = $this->makeQuotation($admin, $serviceRequest);
+
+        $this->actingAs($admin)
+            ->get(route('requests.quotations.show', [$other, $quotation]))
+            ->assertNotFound();
+    }
 }

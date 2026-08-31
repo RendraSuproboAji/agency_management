@@ -69,7 +69,9 @@ export default function Show({ serviceRequest, clients, statuses }) {
                 <Table head={['Nomor', 'Tanggal', 'Nilai', 'Status', '']} empty="Belum ada penawaran.">
                     {serviceRequest.quotations.map((quotation) => (
                         <tr key={quotation.id}>
-                            <Td>{quotation.number}</Td>
+                            <Td>
+                                <Link href={quotation.url} className="text-accent">{quotation.number}</Link>
+                            </Td>
                             <Td>{quotation.issued_at}</Td>
                             <Td><Money amount={quotation.total} /></Td>
                             <Td><Badge status={quotation.status} /></Td>
