@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Exists;
+use Illuminate\Validation\Rules\Unique;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -70,7 +71,7 @@ class DeliverableController extends Controller
     {
         $this->authorizeDeliverable($request, $project, $deliverable);
 
-        $data = $this->validated($request, $project);
+        $data = $this->validated($request, $project, $deliverable);
 
         if ($path = $this->storeFile($request, $project)) {
             $this->deleteFile($deliverable);
@@ -230,17 +231,30 @@ class DeliverableController extends Controller
     }
 
     /** @return array<string, mixed> */
-    private function validated(Request $request, Project $project): array
+    private function validated(Request $request, Project $project, ?Deliverable $deliverable = null): array
     {
         return $request->validate([
             'title' => ['required', 'string', 'max:150'],
             'scene_id' => ['nullable', $this->sceneRule($project)],
             'type' => ['required', 'in:'.implode(',', Deliverable::TYPES)],
-            'version' => ['required', 'integer', 'min:1'],
+            'version' => ['required', 'integer', 'min:1', $this->versionRule($project, $deliverable)],
             'external_url' => ['nullable', 'url', 'max:255'],
             'file' => UploadRules::file(false),
             'status' => ['required', 'in:'.implode(',', Deliverable::STATUSES)],
             'review_note' => ['nullable', 'string'],
         ]);
+    }
+
+    /**
+     * Nama berkas unduhan dibentuk dari judul dan versinya, jadi dua versi
+     * kembar dalam satu project sampai ke klien sebagai dua berkas bernama
+     * sama. Yang terarsip ikut dihitung, sejalan dengan penomoran versi yang
+     * memang sudah memakai withTrashed().
+     */
+    private function versionRule(Project $project, ?Deliverable $deliverable): Unique
+    {
+        $rule = Rule::unique('deliverables', 'version')->where('project_id', $project->id);
+
+        return $deliverable ? $rule->ignore($deliverable) : $rule;
     }
 }

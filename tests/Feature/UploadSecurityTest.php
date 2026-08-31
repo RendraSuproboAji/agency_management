@@ -81,11 +81,11 @@ class UploadSecurityTest extends TestCase
             'file' => UploadedFile::fake()->create('kontrak.pdf', 64),
         ])->assertSessionHasNoErrors();
 
-        foreach (['scene.ply', 'tur.mp4', 'denah.png', 'dataset.zip'] as $name) {
+        foreach (['scene.ply', 'tur.mp4', 'denah.png', 'dataset.zip'] as $index => $name) {
             $this->actingAs($owner)->post(route('deliverables.store', $project), [
                 'title' => $name,
                 'type' => 'splat',
-                'version' => 1,
+                'version' => $index + 1,
                 'status' => 'draft',
                 'file' => UploadedFile::fake()->create($name, 16),
             ])->assertSessionHasNoErrors();
