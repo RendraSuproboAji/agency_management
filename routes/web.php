@@ -13,9 +13,11 @@ use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\NoteController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\Portal\AttachmentController as PortalAttachmentController;
 use App\Http\Controllers\Portal\AuthController as PortalAuthController;
 use App\Http\Controllers\Portal\DeliverableController as PortalDeliverableController;
 use App\Http\Controllers\Portal\DocumentController as PortalDocumentController;
+use App\Http\Controllers\Portal\MessageController as PortalMessageController;
 use App\Http\Controllers\Portal\ProjectController as PortalProjectController;
 use App\Http\Controllers\ProcessingJobController;
 use App\Http\Controllers\ProfileController;
@@ -148,6 +150,7 @@ Route::middleware('auth:web')->group(function () {
     Route::get('/projects/{project}/attachments/{attachment}', [AttachmentController::class, 'download'])->name('attachments.download');
     Route::delete('/projects/{project}/attachments/{attachment}', [AttachmentController::class, 'destroy'])->name('attachments.destroy');
     Route::post('/projects/{project}/notes', [NoteController::class, 'store'])->name('notes.store');
+    Route::put('/projects/{project}/notes/{note}/share', [NoteController::class, 'share'])->name('notes.share');
     Route::delete('/projects/{project}/notes/{note}', [NoteController::class, 'destroy'])->name('notes.destroy');
 
     // Penawaran
@@ -217,5 +220,14 @@ Route::prefix('portal')->name('portal.')->group(function () {
         Route::get('/projects/{project}/deliverables/{deliverable}/download', [PortalDeliverableController::class, 'download'])->name('deliverables.download');
         Route::put('/projects/{project}/deliverables/{deliverable}/approve', [PortalDeliverableController::class, 'approve'])->name('deliverables.approve');
         Route::put('/projects/{project}/deliverables/{deliverable}/revision', [PortalDeliverableController::class, 'requestRevision'])->name('deliverables.revision');
+
+        // Portal terbuka untuk pihak luar, jadi kedua rute yang menerima
+        // kiriman dibatasi lajunya seperti rute portal lain.
+        Route::post('/projects/{project}/messages', [PortalMessageController::class, 'store'])
+            ->middleware('throttle:20,1')->name('messages.store');
+        Route::post('/projects/{project}/attachments', [PortalAttachmentController::class, 'store'])
+            ->middleware('throttle:20,1')->name('attachments.store');
+        Route::get('/projects/{project}/attachments/{attachment}/download', [PortalAttachmentController::class, 'download'])
+            ->name('attachments.download');
     });
 });

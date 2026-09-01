@@ -27,8 +27,10 @@ class ProjectController extends Controller
     }
 
     /**
-     * Halaman project untuk klien. Sengaja tidak memuat catatan internal,
-     * log aktivitas, maupun lampiran internal.
+     * Halaman project untuk klien. Sengaja tidak memuat catatan internal
+     * maupun log aktivitas. Catatan hanya ikut bila ditandai dibagikan, dan
+     * lampiran hanya yang klien itu sendiri kirimkan — kontrak dan foto survei
+     * internal tetap tidak terlihat.
      */
     public function show(Request $request, Project $project): Response
     {
@@ -40,6 +42,10 @@ class ProjectController extends Controller
             'deliverables' => fn ($query) => $query->orderByDesc('created_at'),
             'invoices' => fn ($query) => $query->whereNot('status', 'draft')->with('payments')->orderByDesc('issued_at'),
             'quotations' => fn ($query) => $query->whereNot('status', 'draft')->with('items')->orderByDesc('issued_at'),
+            'notes' => fn ($query) => $query->where('shared_with_client', true)
+                ->with('author', 'client')->oldest(),
+            'attachments' => fn ($query) => $query->whereNotNull('uploaded_by_client_id')
+                ->with('uploaderClient')->latest(),
         ]);
 
         return Inertia::render('Portal/Project', [
@@ -59,6 +65,18 @@ class ProjectController extends Controller
                         ? route('portal.deliverables.download', [$project, $deliverable])
                         : null,
                     'can_review' => in_array($deliverable->status, ['submitted', 'revision'], true),
+                ]),
+                'messages' => $project->notes->map(fn ($note) => [
+                    ...$note->only(['id', 'body']),
+                    'author' => $note->authorName(),
+                    'from_client' => $note->client_id !== null,
+                    'created_at' => $note->created_at->format('d M Y H:i'),
+                ]),
+                'files' => $project->attachments->map(fn ($attachment) => [
+                    ...$attachment->only(['id', 'title']),
+                    'size' => $attachment->humanSize(),
+                    'created_at' => $attachment->created_at->format('d M Y'),
+                    'download_url' => route('portal.attachments.download', [$project, $attachment]),
                 ]),
                 'documents' => $project->quotations
                     ->map(fn ($quotation) => [

@@ -255,7 +255,11 @@ export default function Show({ project, canManage, statuses, billed, paid, rawSi
                             <Td><a href={`${base}/attachments/${item.id}`} className="text-accent">{item.title}</a></Td>
                             <Td>{item.category}</Td>
                             <Td>{item.size}</Td>
-                            <Td>{item.created_at}<br /><small className="text-muted">{item.uploader}</small></Td>
+                            <Td>
+                                {item.created_at}<br />
+                                <small className="text-muted">{item.uploader}</small>
+                                {item.from_client && <><br /><Badge status="dari klien" /></>}
+                            </Td>
                             <Td>
                                 {canManage && (
                                     <ConfirmButton small message="Hapus lampiran ini?" confirmLabel="Ya, hapus"
@@ -292,8 +296,16 @@ export default function Show({ project, canManage, statuses, billed, paid, rawSi
                 {project.notes.map((item) => (
                     <div key={item.id} className="border-b border-line py-2 last:border-b-0">
                         <p className="whitespace-pre-line text-sm">{item.body}</p>
-                        <p className="mt-1 flex items-center gap-2 text-xs text-muted">
+                        <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted">
                             {item.author} · {item.created_at}
+                            {item.from_client
+                                ? <Badge status="dari klien" />
+                                : (
+                                    <Button small onClick={() => router.put(`${base}/notes/${item.id}/share`)}>
+                                        {item.shared ? 'Berhenti bagikan' : 'Bagikan ke klien'}
+                                    </Button>
+                                )}
+                            {! item.from_client && item.shared && <Badge status="terlihat klien" />}
                             {item.can_delete && (
                                 <ConfirmButton small message="Hapus catatan ini?" confirmLabel="Ya, hapus"
                                                onConfirm={() => router.delete(`${base}/notes/${item.id}`)}>

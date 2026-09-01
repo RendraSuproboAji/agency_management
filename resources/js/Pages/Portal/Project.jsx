@@ -17,6 +17,81 @@ function RevisionForm({ action }) {
 }
 
 /**
+ * Percakapan dengan tim. Catatan staf hanya sampai ke sini bila mereka
+ * menandainya dibagikan, jadi yang internal tidak pernah ikut terbawa.
+ */
+function Messages({ project }) {
+    const message = useForm({ body: '' });
+    const upload = useForm({ title: '', file: null });
+
+    const send = (event) => {
+        event.preventDefault();
+        message.post(`/portal/projects/${project.slug}/messages`, {
+            onSuccess: () => message.reset(),
+        });
+    };
+
+    const sendFile = (event) => {
+        event.preventDefault();
+        upload.post(`/portal/projects/${project.slug}/attachments`, {
+            forceFormData: true,
+            onSuccess: () => upload.reset(),
+        });
+    };
+
+    return (
+        <Panel title="Pesan">
+            {project.messages.length === 0 && (
+                <p className="text-sm text-muted">Belum ada pesan. Tulis pertanyaan Anda di bawah.</p>
+            )}
+            {project.messages.map((item) => (
+                <div key={item.id} className="border-b border-line py-2 last:border-b-0">
+                    <p className="whitespace-pre-line text-sm">{item.body}</p>
+                    <p className="mt-1 text-xs text-muted">
+                        {item.author}{item.from_client ? ' (Anda)' : ' · tim'} · {item.created_at}
+                    </p>
+                </div>
+            ))}
+
+            <form onSubmit={send} className="mt-3">
+                <textarea rows={3} required className={inputClass} placeholder="Tulis pertanyaan atau masukan…"
+                          value={message.data.body} onChange={(e) => message.setData('body', e.target.value)} />
+                {message.errors.body && <p className="mt-1 text-xs text-danger">{message.errors.body}</p>}
+                <Button type="submit" className="mt-2" disabled={message.processing}>Kirim pesan</Button>
+            </form>
+
+            <div className="mt-5 border-t border-line pt-4">
+                <h3 className="text-sm font-semibold">Kirim berkas</h3>
+                <p className="mt-1 text-xs text-muted">Denah, foto acuan, atau apa pun yang membantu tim kami.</p>
+
+                {project.files.length > 0 && (
+                    <ul className="mt-2 text-sm">
+                        {project.files.map((file) => (
+                            <li key={file.id} className="py-1">
+                                <a href={file.download_url} className="text-accent">{file.title}</a>{' '}
+                                <span className="text-xs text-muted">{file.size} · {file.created_at}</span>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+
+                <form onSubmit={sendFile} className="mt-2 grid gap-2 sm:grid-cols-2">
+                    <input className={inputClass} required placeholder="Nama berkas"
+                           value={upload.data.title} onChange={(e) => upload.setData('title', e.target.value)} />
+                    <input type="file" className={inputClass} required
+                           onChange={(e) => upload.setData('file', e.target.files[0])} />
+                    {upload.errors.title && <p className="text-xs text-danger">{upload.errors.title}</p>}
+                    {upload.errors.file && <p className="text-xs text-danger sm:col-span-2">{upload.errors.file}</p>}
+                    <Button type="submit" className="sm:col-span-2 sm:justify-self-start" disabled={upload.processing}>
+                        Unggah
+                    </Button>
+                </form>
+            </div>
+        </Panel>
+    );
+}
+
+/**
  * Kelompokkan hasil pekerjaan per scene, mempertahankan urutan aslinya.
  * Deliverable tanpa scene tetap tampil, di bawah judul kosong.
  */
@@ -134,6 +209,8 @@ export default function Project({ project, statuses }) {
                     ))}
                 </Table>
             </Panel>
+
+            <Messages project={project} />
         </PortalLayout>
     );
 }

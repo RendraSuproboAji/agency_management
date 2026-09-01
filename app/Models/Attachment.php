@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['project_id', 'uploaded_by', 'title', 'category', 'file_path', 'mime', 'size'])]
+#[Fillable(['project_id', 'uploaded_by', 'uploaded_by_client_id', 'title', 'category', 'file_path', 'mime', 'size'])]
 class Attachment extends Model
 {
     /** @use HasFactory<AttachmentFactory> */
@@ -24,6 +24,17 @@ class Attachment extends Model
     public function uploader(): BelongsTo
     {
         return $this->belongsTo(User::class, 'uploaded_by');
+    }
+
+    public function uploaderClient(): BelongsTo
+    {
+        return $this->belongsTo(Client::class, 'uploaded_by_client_id');
+    }
+
+    /** Pengunggahnya, staf atau klien — satu sumber untuk kedua layar. */
+    public function uploaderName(): string
+    {
+        return $this->uploader?->name ?? $this->uploaderClient?->name ?? 'Tidak diketahui';
     }
 
     public function humanSize(): string

@@ -82,7 +82,7 @@ class ProjectController extends Controller
             'invoices' => fn ($query) => $query->with('payments')->orderByDesc('issued_at'),
             'processingJobs' => fn ($query) => $query->with('captureSession')->latest(),
             'attachments' => fn ($query) => $query->with('uploader')->latest(),
-            'notes' => fn ($query) => $query->with('author')->latest(),
+            'notes' => fn ($query) => $query->with('author', 'client')->latest(),
             'activities' => fn ($query) => $query->with('user')->latest()->limit(30),
         ]);
 
@@ -142,13 +142,16 @@ class ProjectController extends Controller
                 'attachments' => $project->attachments->map(fn ($attachment) => [
                     ...$attachment->only(['id', 'title', 'category']),
                     'size' => $attachment->humanSize(),
-                    'uploader' => $attachment->uploader?->name,
+                    'uploader' => $attachment->uploaderName(),
+                    'from_client' => $attachment->uploaded_by_client_id !== null,
                     'created_at' => $attachment->created_at->format('d M Y'),
                 ]),
                 'notes' => $project->notes->map(fn ($note) => [
                     'id' => $note->id,
                     'body' => $note->body,
-                    'author' => $note->author?->name ?: 'Pengguna terhapus',
+                    'author' => $note->authorName(),
+                    'from_client' => $note->client_id !== null,
+                    'shared' => $note->shared_with_client,
                     'created_at' => $note->created_at->diffForHumans(),
                     'can_delete' => $note->user_id === $user->id || $user->isAdmin(),
                 ]),

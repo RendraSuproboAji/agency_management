@@ -41,6 +41,7 @@ class SmokeTest extends TestCase
         'portal.dashboard',
         'portal.projects.show',
         'portal.deliverables.download',
+        'portal.attachments.download',  // dijamin PortalMessageTest
         'portal.quotations.print',
         'portal.invoices.print',
         'login',
