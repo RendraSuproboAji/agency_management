@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { Children, cloneElement, isValidElement } from 'react';
+import { Children, cloneElement, isValidElement, useCallback, useRef, useState } from 'react';
 import { useTheme } from '@/useTheme';
 
 const BADGE_TONES = {
@@ -147,6 +147,55 @@ export function Button({ variant = 'default', small = false, className = '', ...
     const size = small ? 'px-2 py-1 text-xs' : 'px-3 py-2 text-sm';
 
     return <button className={`cursor-pointer rounded-lg border whitespace-nowrap ${BUTTON_STYLES[variant]} ${size} ${className}`} {...props} />;
+}
+
+/**
+ * Tombol yang menanyakan konfirmasi lebih dulu.
+ *
+ * Menggantikan window.confirm: dialog bawaan tidak ikut mode gelap,
+ * tampilannya berbeda di tiap peramban, dan di sebagian peramban bisa
+ * diblokir — kalau diblokir, tombolnya diam saja tanpa jejak sama sekali.
+ *
+ * Memakai elemen <dialog> bawaan HTML, jadi Esc, fokus, dan latar gelapnya
+ * ditangani peramban sendiri tanpa pustaka tambahan.
+ */
+export function ConfirmButton({
+    message,
+    onConfirm,
+    confirmLabel = 'Ya, lanjutkan',
+    variant = 'danger',
+    small = false,
+    className = '',
+    children,
+}) {
+    const dialog = useRef(null);
+    const [busy, setBusy] = useState(false);
+
+    const close = useCallback(() => dialog.current?.close(), []);
+
+    const confirm = useCallback(() => {
+        setBusy(true);
+        close();
+        onConfirm();
+    }, [close, onConfirm]);
+
+    return (
+        <>
+            <Button variant={variant} small={small} className={className}
+                    disabled={busy} onClick={() => dialog.current?.showModal()}>
+                {children}
+            </Button>
+
+            <dialog ref={dialog}
+                    className="m-auto w-[min(24rem,calc(100vw-2rem))] rounded-xl border border-line bg-raised p-4 text-ink backdrop:bg-black/50">
+                <p className="text-sm">{message}</p>
+                <div className="mt-4 flex justify-end gap-2">
+                    <Button onClick={close}>Batal</Button>
+                    <Button variant={variant} onClick={confirm}>{confirmLabel}</Button>
+                </div>
+            </dialog>
+        </>
+    );
 }
 
 export function ButtonLink({ href, variant = 'default', small = false, className = '', ...props }) {

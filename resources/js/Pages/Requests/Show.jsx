@@ -1,7 +1,7 @@
 import { Link, router, useForm, usePage } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import { useServerState } from '@/useServerState';
-import { Badge, Button, ButtonLink, DetailList, Field, Money, PageHead, Panel, Table, Td, inputClass } from '@/Components/ui';
+import { Badge, Button, ButtonLink, ConfirmButton, DetailList, Field, Money, PageHead, Panel, Table, Td, inputClass } from '@/Components/ui';
 
 export default function Show({ serviceRequest, clients, statuses }) {
     const { auth } = usePage().props;
@@ -21,10 +21,10 @@ export default function Show({ serviceRequest, clients, statuses }) {
                 {/* Permintaan yang sudah punya penawaran tidak bisa dihapus —
                     tombolnya disembunyikan supaya penolakannya tidak mengejutkan. */}
                 {auth.user?.is_admin && serviceRequest.quotations.length === 0 && (
-                    <Button variant="danger"
-                            onClick={() => window.confirm('Hapus request ini?') && router.delete(`/requests/${serviceRequest.id}`)}>
+                    <ConfirmButton message="Hapus request ini?" confirmLabel="Ya, hapus"
+                                   onConfirm={() => router.delete(`/requests/${serviceRequest.id}`)}>
                         Hapus
-                    </Button>
+                    </ConfirmButton>
                 )}
             </PageHead>
 

@@ -1,11 +1,7 @@
 import { Link, router, useForm, usePage } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import { useServerState } from '@/useServerState';
-import { Badge, Button, ButtonLink, DetailList, Money, PageHead, Panel, Table, Td, inputClass } from '@/Components/ui';
-
-function confirmThen(message, action) {
-    if (window.confirm(message)) action();
-}
+import { Badge, Button, ButtonLink, ConfirmButton, DetailList, Money, PageHead, Panel, Table, Td, inputClass } from '@/Components/ui';
 
 export default function Show({ project, canManage, statuses, billed, paid, rawSizeGb, jobKinds, jobStatuses, attachmentCategories }) {
     const { auth } = usePage().props;
@@ -28,7 +24,8 @@ export default function Show({ project, canManage, statuses, billed, paid, rawSi
             >
                 {canManage && <ButtonLink href={`${base}/edit`}>Ubah</ButtonLink>}
                 {auth.user?.is_admin && (
-                    <Button variant="danger" onClick={() => confirmThen('Arsipkan project ini?', () => router.delete(base))}>Arsipkan</Button>
+                    <ConfirmButton message="Arsipkan project ini?" confirmLabel="Ya, arsipkan"
+                                   onConfirm={() => router.delete(base)}>Arsipkan</ConfirmButton>
                 )}
             </PageHead>
 
@@ -124,10 +121,10 @@ export default function Show({ project, canManage, statuses, billed, paid, rawSi
                                     {session.status === 'scheduled' && (
                                         <Button small onClick={() => router.put(`${base}/sessions/${session.id}/complete`)}>Selesai</Button>
                                     )}
-                                    <Button small variant="danger"
-                                            onClick={() => confirmThen('Hapus sesi ini?', () => router.delete(`${base}/sessions/${session.id}`))}>
+                                    <ConfirmButton small message="Hapus sesi ini?" confirmLabel="Ya, hapus"
+                                                   onConfirm={() => router.delete(`${base}/sessions/${session.id}`)}>
                                         Hapus
-                                    </Button>
+                                    </ConfirmButton>
                                 </>}
                             </Td>
                         </tr>
@@ -158,10 +155,10 @@ export default function Show({ project, canManage, statuses, billed, paid, rawSi
                                     {item.status === 'running' && (
                                         <Button small onClick={() => router.put(`${base}/jobs/${item.id}/finish`, { status: 'done' })}>Selesai</Button>
                                     )}
-                                    <Button small variant="danger"
-                                            onClick={() => confirmThen('Hapus job ini?', () => router.delete(`${base}/jobs/${item.id}`))}>
+                                    <ConfirmButton small message="Hapus job ini?" confirmLabel="Ya, hapus"
+                                                   onConfirm={() => router.delete(`${base}/jobs/${item.id}`)}>
                                         Hapus
-                                    </Button>
+                                    </ConfirmButton>
                                 </>}
                             </Td>
                         </tr>
@@ -199,10 +196,10 @@ export default function Show({ project, canManage, statuses, billed, paid, rawSi
                             {item.notes && <p className="whitespace-pre-line text-sm text-muted">{item.notes}</p>}
                         </div>
                         {canManage && (
-                            <Button small variant="danger"
-                                    onClick={() => confirmThen('Arsipkan scene ini?', () => router.delete(`${base}/scenes/${item.id}`))}>
+                            <ConfirmButton small message="Arsipkan scene ini?" confirmLabel="Ya, arsipkan"
+                                           onConfirm={() => router.delete(`${base}/scenes/${item.id}`)}>
                                 Arsipkan
-                            </Button>
+                            </ConfirmButton>
                         )}
                     </div>
                 ))}
@@ -241,10 +238,10 @@ export default function Show({ project, canManage, statuses, billed, paid, rawSi
                                 {item.status !== 'approved' && (
                                     <Button small onClick={() => router.put(`${base}/deliverables/${item.id}/approve`)}>Setujui</Button>
                                 )}
-                                <Button small variant="danger"
-                                        onClick={() => confirmThen('Arsipkan deliverable ini?', () => router.delete(`${base}/deliverables/${item.id}`))}>
+                                <ConfirmButton small message="Arsipkan deliverable ini?" confirmLabel="Ya, arsipkan"
+                                               onConfirm={() => router.delete(`${base}/deliverables/${item.id}`)}>
                                     Arsipkan
-                                </Button>
+                                </ConfirmButton>
                             </div>
                         )}
                     </div>
@@ -261,10 +258,10 @@ export default function Show({ project, canManage, statuses, billed, paid, rawSi
                             <Td>{item.created_at}<br /><small className="text-muted">{item.uploader}</small></Td>
                             <Td>
                                 {canManage && (
-                                    <Button small variant="danger"
-                                            onClick={() => confirmThen('Hapus lampiran ini?', () => router.delete(`${base}/attachments/${item.id}`))}>
+                                    <ConfirmButton small message="Hapus lampiran ini?" confirmLabel="Ya, hapus"
+                                                   onConfirm={() => router.delete(`${base}/attachments/${item.id}`)}>
                                         Hapus
-                                    </Button>
+                                    </ConfirmButton>
                                 )}
                             </Td>
                         </tr>
@@ -298,10 +295,10 @@ export default function Show({ project, canManage, statuses, billed, paid, rawSi
                         <p className="mt-1 flex items-center gap-2 text-xs text-muted">
                             {item.author} · {item.created_at}
                             {item.can_delete && (
-                                <Button small variant="danger"
-                                        onClick={() => confirmThen('Hapus catatan ini?', () => router.delete(`${base}/notes/${item.id}`))}>
+                                <ConfirmButton small message="Hapus catatan ini?" confirmLabel="Ya, hapus"
+                                               onConfirm={() => router.delete(`${base}/notes/${item.id}`)}>
                                     Hapus
-                                </Button>
+                                </ConfirmButton>
                             )}
                         </p>
                     </div>

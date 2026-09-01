@@ -1,6 +1,6 @@
 import { router } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
-import { Button, PageHead, Panel, Table, Td } from '@/Components/ui';
+import { Button, ConfirmButton, PageHead, Panel, Table, Td } from '@/Components/ui';
 
 export default function Index({ groups }) {
     return (
@@ -22,11 +22,11 @@ export default function Index({ groups }) {
                                 <Td>{item.deleted_at}</Td>
                                 <Td className="flex flex-wrap gap-1">
                                     <Button small onClick={() => router.put(`/archive/${group.type}/${item.id}/restore`)}>Pulihkan</Button>
-                                    <Button small variant="danger"
-                                            onClick={() => window.confirm('Hapus permanen? Data dan berkasnya tidak bisa dikembalikan.')
-                                                && router.delete(`/archive/${group.type}/${item.id}`)}>
+                                    <ConfirmButton small confirmLabel="Ya, hapus permanen"
+                                                   message="Hapus permanen? Data dan berkasnya tidak bisa dikembalikan."
+                                                   onConfirm={() => router.delete(`/archive/${group.type}/${item.id}`)}>
                                         Hapus permanen
-                                    </Button>
+                                    </ConfirmButton>
                                 </Td>
                             </tr>
                         ))}

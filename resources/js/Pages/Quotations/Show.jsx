@@ -1,6 +1,6 @@
 import { Link, router, usePage } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
-import { Badge, Button, ButtonLink, Money, PageHead, Panel, Table, Td } from '@/Components/ui';
+import { Badge, Button, ButtonLink, ConfirmButton, Money, PageHead, Panel, Table, Td } from '@/Components/ui';
 
 export default function Show({ project, serviceRequest, quotation, canManage }) {
     const { auth } = usePage().props;
@@ -59,10 +59,10 @@ export default function Show({ project, serviceRequest, quotation, canManage }) 
                     </ButtonLink>
                 )}
                 {auth.user?.is_admin && (
-                    <Button variant="danger"
-                            onClick={() => window.confirm('Arsipkan penawaran ini?') && router.delete(target.base)}>
+                    <ConfirmButton message="Arsipkan penawaran ini?" confirmLabel="Ya, arsipkan"
+                                   onConfirm={() => router.delete(target.base)}>
                         Arsipkan
-                    </Button>
+                    </ConfirmButton>
                 )}
             </PageHead>
 

@@ -1,6 +1,6 @@
 import { router } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
-import { Badge, Button, ButtonLink, PageHead, Pagination, Table, Td } from '@/Components/ui';
+import { Badge, ButtonLink, ConfirmButton, PageHead, Pagination, Table, Td } from '@/Components/ui';
 
 export default function Index({ users }) {
     return (
@@ -18,10 +18,10 @@ export default function Index({ users }) {
                         <Td>{user.owned_projects_count}</Td>
                         <Td className="flex flex-wrap gap-1">
                             <ButtonLink href={`/users/${user.id}/edit`} small>Ubah</ButtonLink>
-                            <Button small variant="danger"
-                                    onClick={() => window.confirm('Hapus pengguna ini?') && router.delete(`/users/${user.id}`)}>
+                            <ConfirmButton small message="Hapus pengguna ini?" confirmLabel="Ya, hapus"
+                                           onConfirm={() => router.delete(`/users/${user.id}`)}>
                                 Hapus
-                            </Button>
+                            </ConfirmButton>
                         </Td>
                     </tr>
                 ))}

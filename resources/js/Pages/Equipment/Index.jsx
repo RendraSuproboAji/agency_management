@@ -1,7 +1,7 @@
 import { router } from '@inertiajs/react';
 import { useState } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
-import { Badge, Button, ButtonLink, PageHead, Pagination, Table, Td, inputClass } from '@/Components/ui';
+import { Badge, Button, ButtonLink, ConfirmButton, PageHead, Pagination, Table, Td, inputClass } from '@/Components/ui';
 
 export default function Index({ equipment, filters, categories, statuses, isAdmin }) {
     const [form, setForm] = useState({ q: filters.q ?? '', category: filters.category ?? '', status: filters.status ?? '' });
@@ -38,10 +38,10 @@ export default function Index({ equipment, filters, categories, statuses, isAdmi
                         <Td className="flex flex-wrap gap-1">
                             <ButtonLink href={`/equipment/${item.id}/edit`} small>Ubah</ButtonLink>
                             {isAdmin && (
-                                <Button small variant="danger"
-                                        onClick={() => window.confirm('Arsipkan peralatan ini?') && router.delete(`/equipment/${item.id}`)}>
+                                <ConfirmButton small message="Arsipkan peralatan ini?" confirmLabel="Ya, arsipkan"
+                                               onConfirm={() => router.delete(`/equipment/${item.id}`)}>
                                     Arsipkan
-                                </Button>
+                                </ConfirmButton>
                             )}
                         </Td>
                     </tr>

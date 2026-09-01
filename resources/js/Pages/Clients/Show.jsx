@@ -1,22 +1,21 @@
 import { Link, router, usePage } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
-import { Badge, Button, ButtonLink, DetailList, PageHead, Panel, Table, Td } from '@/Components/ui';
+import { Badge, ButtonLink, ConfirmButton, DetailList, PageHead, Panel, Table, Td } from '@/Components/ui';
 
 export default function Show({ client }) {
     const { auth } = usePage().props;
-
-    const archive = () => {
-        if (window.confirm('Arsipkan klien beserta seluruh project-nya?')) {
-            router.delete(`/clients/${client.slug}`);
-        }
-    };
 
     return (
         <AppLayout title={client.name}>
             <PageHead title={client.name} subtitle={<><Badge status={client.status} /> {client.industry}</>}>
                 <ButtonLink href={`/clients/${client.slug}/edit`}>Ubah</ButtonLink>
                 <ButtonLink href={`/projects/create?client_id=${client.id}`} variant="primary">Project baru</ButtonLink>
-                {auth.user?.is_admin && <Button variant="danger" onClick={archive}>Arsipkan</Button>}
+                {auth.user?.is_admin && (
+                    <ConfirmButton message="Arsipkan klien beserta seluruh project-nya?" confirmLabel="Ya, arsipkan"
+                                   onConfirm={() => router.delete(`/clients/${client.slug}`)}>
+                        Arsipkan
+                    </ConfirmButton>
+                )}
             </PageHead>
 
             <Panel>

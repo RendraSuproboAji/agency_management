@@ -1,6 +1,6 @@
 import { Link, router, useForm, usePage } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
-import { Badge, Button, ButtonLink, DetailList, Money, PageHead, Panel, Table, Td, inputClass } from '@/Components/ui';
+import { Badge, Button, ButtonLink, ConfirmButton, DetailList, Money, PageHead, Panel, Table, Td, inputClass } from '@/Components/ui';
 
 export default function Show({ project, invoice, canManage, methods }) {
     const { auth } = usePage().props;
@@ -30,7 +30,8 @@ export default function Show({ project, invoice, canManage, methods }) {
                 </a>
                 {canManage && <ButtonLink href={`${base}/edit`}>Ubah</ButtonLink>}
                 {auth.user?.is_admin && (
-                    <Button variant="danger" onClick={() => window.confirm('Arsipkan invoice ini?') && router.delete(base)}>Arsipkan</Button>
+                    <ConfirmButton message="Arsipkan invoice ini?" confirmLabel="Ya, arsipkan"
+                                   onConfirm={() => router.delete(base)}>Arsipkan</ConfirmButton>
                 )}
             </PageHead>
 
@@ -61,10 +62,10 @@ export default function Show({ project, invoice, canManage, methods }) {
                             <Td>{item.reference || '—'}<br /><small className="text-muted">{item.note}</small></Td>
                             <Td>
                                 {canManage && (
-                                    <Button small variant="danger"
-                                            onClick={() => window.confirm('Hapus pembayaran ini?') && router.delete(`${base}/payments/${item.id}`)}>
+                                    <ConfirmButton small message="Hapus pembayaran ini?" confirmLabel="Ya, hapus"
+                                                   onConfirm={() => router.delete(`${base}/payments/${item.id}`)}>
                                         Hapus
-                                    </Button>
+                                    </ConfirmButton>
                                 )}
                             </Td>
                         </tr>
