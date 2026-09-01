@@ -125,6 +125,10 @@ class QuotationController extends Controller
     {
         $this->authorizeQuotation($request, $project, $quotation);
 
+        if ($rejection = $this->rejectIfExpired($quotation)) {
+            return $rejection;
+        }
+
         $quotation->update(['status' => 'accepted']);
 
         ActivityLogger::log($quotation, 'quotation.accepted', 'Penawaran '.$quotation->number.' disetujui klien.');
@@ -245,6 +249,10 @@ class QuotationController extends Controller
     {
         $this->authorizeProspectQuotation($serviceRequest, $quotation);
 
+        if ($rejection = $this->rejectIfExpired($quotation)) {
+            return $rejection;
+        }
+
         $quotation->update(['status' => 'accepted']);
 
         ActivityLogger::log($quotation, 'quotation.accepted', 'Penawaran '.$quotation->number.' disetujui calon klien.');
@@ -253,6 +261,24 @@ class QuotationController extends Controller
         // adalah dua keputusan berbeda — yang kedua menentukan nama klien,
         // judul project, dan PIC-nya.
         return back()->with('status', 'Penawaran ditandai disetujui. Konversi request ini untuk mulai mengerjakan dan menagih.');
+    }
+
+    /**
+     * Penawaran yang masa berlakunya habis tidak bisa disetujui begitu saja:
+     * harganya sudah tidak mengikat. Menerbitkan ulang tanggalnya adalah
+     * keputusan sadar, dan itulah jalan keluarnya.
+     */
+    private function rejectIfExpired(Quotation $quotation): ?RedirectResponse
+    {
+        if (! $quotation->isExpired()) {
+            return null;
+        }
+
+        return back()->withErrors([
+            'quotation' => 'Masa berlaku penawaran ini sudah habis pada '
+                .$quotation->valid_until->format('d M Y')
+                .'. Perbarui tanggal berlakunya dulu bila harganya masih sama.',
+        ]);
     }
 
     private function authorizeProspectQuotation(ServiceRequest $serviceRequest, Quotation $quotation): void
@@ -265,6 +291,7 @@ class QuotationController extends Controller
     {
         return [
             ...$quotation->only(['id', 'number', 'status', 'notes', 'tax_percent']),
+            'is_expired' => $quotation->isExpired(),
             'issued_at' => $quotation->issued_at->format('d M Y'),
             'valid_until' => $quotation->valid_until?->format('d M Y'),
             'subtotal' => $quotation->subtotal(),

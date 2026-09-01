@@ -120,6 +120,7 @@ class ProjectController extends Controller
                     'id' => $quotation->id,
                     'number' => $quotation->number,
                     'status' => $quotation->status,
+                    'is_expired' => $quotation->isExpired(),
                     'issued_at' => $quotation->issued_at->format('d M Y'),
                     'amount' => $quotation->total(),
                 ]),

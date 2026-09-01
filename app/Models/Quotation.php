@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Database\Factories\QuotationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -25,6 +27,26 @@ class Quotation extends Model
             'valid_until' => 'date',
             'tax_percent' => 'decimal:2',
         ];
+    }
+
+    /**
+     * Kedaluwarsanya diturunkan, tidak disimpan — sejalan dengan
+     * Invoice::isOverdue(). Menyimpannya menuntut perintah terjadwal, dan
+     * status penawaran sudah dipakai untuk hal lain: yang kedaluwarsa tetap
+     * berstatus "sent" sampai seseorang memutuskan menerbitkannya ulang.
+     */
+    public function isExpired(): bool
+    {
+        return $this->status === 'sent'
+            && $this->valid_until
+            && $this->valid_until->isBefore(Carbon::today());
+    }
+
+    public function scopeExpired(Builder $query): Builder
+    {
+        return $query->where('status', 'sent')
+            ->whereNotNull('valid_until')
+            ->whereDate('valid_until', '<', Carbon::today());
     }
 
     public function project(): BelongsTo

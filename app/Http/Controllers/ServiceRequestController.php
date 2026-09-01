@@ -51,6 +51,7 @@ class ServiceRequestController extends Controller
                 'converted_project' => $serviceRequest->convertedProject?->only(['slug', 'title']),
                 'quotations' => $serviceRequest->quotations->map(fn ($quotation) => [
                     ...$quotation->only(['id', 'number', 'status']),
+                    'is_expired' => $quotation->isExpired(),
                     'issued_at' => $quotation->issued_at->format('d M Y'),
                     'total' => $quotation->total(),
                     'url' => route('requests.quotations.show', [$serviceRequest, $quotation]),

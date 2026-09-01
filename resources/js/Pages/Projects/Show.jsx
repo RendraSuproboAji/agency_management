@@ -99,7 +99,7 @@ export default function Show({ project, canManage, statuses, billed, paid, rawSi
                                 <Money amount={doc.amount} />
                                 {doc.kind === 'invoice' && <><br /><small className="text-muted">sisa <Money amount={doc.outstanding} /></small></>}
                             </Td>
-                            <Td><Badge status={doc.status} /></Td>
+                            <Td><Badge status={doc.status} /> {doc.is_expired && <Badge status="kedaluwarsa" />}</Td>
                         </tr>
                     ))}
                 </Table>

@@ -74,7 +74,7 @@ export default function Show({ serviceRequest, clients, statuses }) {
                             </Td>
                             <Td>{quotation.issued_at}</Td>
                             <Td><Money amount={quotation.total} /></Td>
-                            <Td><Badge status={quotation.status} /></Td>
+                            <Td><Badge status={quotation.status} /> {quotation.is_expired && <Badge status="kedaluwarsa" />}</Td>
                             <Td>
                                 <a href={quotation.print_url} className="text-accent">Cetak</a>
                             </Td>

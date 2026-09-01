@@ -26,7 +26,8 @@ export default function Show({ project, serviceRequest, quotation, canManage }) 
                     <Link href={target.parentUrl} className="text-accent">{target.parentLabel}</Link>
                     {' · terbit '}{quotation.issued_at}
                     {quotation.valid_until && ` · berlaku s.d. ${quotation.valid_until}`}{' '}
-                    <Badge status={quotation.status} />
+                    <Badge status={quotation.status} />{' '}
+                    {quotation.is_expired && <Badge status="kedaluwarsa" />}
                 </>}
             >
                 <a href={`${target.base}/print`} target="_blank" rel="noopener"
@@ -34,8 +35,15 @@ export default function Show({ project, serviceRequest, quotation, canManage }) 
                     Cetak
                 </a>
                 {canManage && <ButtonLink href={`${target.base}/edit`}>Ubah</ButtonLink>}
-                {canManage && quotation.status !== 'accepted' && (
+                {/* Penawaran kedaluwarsa harganya sudah tidak mengikat, jadi
+                    tombolnya hilang sampai tanggal berlakunya diperbarui —
+                    servernya menolak juga, ini supaya penolakannya tidak
+                    mengejutkan. */}
+                {canManage && quotation.status !== 'accepted' && ! quotation.is_expired && (
                     <Button variant="primary" onClick={() => router.put(`${target.base}/accept`)}>Tandai disetujui</Button>
+                )}
+                {canManage && quotation.is_expired && (
+                    <ButtonLink href={`${target.base}/edit`} variant="primary">Perbarui masa berlaku</ButtonLink>
                 )}
                 {/* Menagih menuntut project, dan project menuntut klien. Jadi
                     penawaran calon klien yang disetujui mengarah ke konversi

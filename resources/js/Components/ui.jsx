@@ -18,7 +18,7 @@ const TONE_BY_STATUS = {
     lead: 'warn', survey: 'warn', draft: 'warn', partial: 'warn', new: 'warn',
     queued: 'warn', maintenance: 'warn',
     revision: 'danger', cancelled: 'danger', rejected: 'danger',
-    void: 'danger', failed: 'danger',
+    void: 'danger', failed: 'danger', kedaluwarsa: 'danger',
 };
 
 export function Badge({ status }) {
