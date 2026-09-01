@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Activity;
 use App\Models\Client;
 use App\Support\ActivityLogger;
 use App\Support\Archive;
@@ -63,6 +64,20 @@ class ClientController extends Controller
                     'service_type' => str_replace('_', ' ', $project->service_type),
                     'deadline' => $project->deadline?->format('d M Y'),
                 ]),
+                // Aktivitas klien tersimpan tanpa project_id, jadi tanpa panel
+                // ini riwayatnya hanya terbaca di halaman riwayat global.
+                'activities' => Activity::where('subject_type', Client::class)
+                    ->where('subject_id', $client->id)
+                    ->with('user')
+                    ->latest()
+                    ->latest('id')
+                    ->limit(20)
+                    ->get()
+                    ->map(fn (Activity $activity) => [
+                        ...$activity->only(['id', 'description']),
+                        'actor' => $activity->actorName(),
+                        'created_at' => $activity->created_at->format('d M Y H:i'),
+                    ]),
             ],
         ]);
     }

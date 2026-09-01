@@ -10,6 +10,7 @@ const NAV = [
     { label: 'Peralatan', route: '/equipment' },
     { label: 'Tagihan', route: '/invoices' },
     { label: 'Sesi Capture', route: '/sessions' },
+    { label: 'Riwayat', route: '/activities' },
 ];
 
 const ADMIN_NAV = [

@@ -41,6 +41,16 @@ export default function Show({ client }) {
                     ))}
                 </Table>
             </Panel>
+            <Panel title="Riwayat">
+                {client.activities.length === 0 && <p className="text-sm text-muted">Belum ada yang tercatat.</p>}
+                {client.activities.map((activity) => (
+                    <div key={activity.id} className="border-b border-line py-2 last:border-b-0">
+                        <p className="text-sm">{activity.description}</p>
+                        <p className="mt-1 text-xs text-muted">{activity.actor} · {activity.created_at}</p>
+                    </div>
+                ))}
+            </Panel>
+
         </AppLayout>
     );
 }

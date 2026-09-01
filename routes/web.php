@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\ArchiveController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\AuthController;
@@ -85,6 +86,10 @@ Route::middleware('auth:web')->group(function () {
     Route::delete('/requests/{serviceRequest}', [ServiceRequestController::class, 'destroy'])
         ->middleware('admin')
         ->name('requests.destroy');
+
+    // Riwayat lintas data — aktivitas klien dan peralatan tidak punya project
+    // sebagai induk, jadi hanya di sini ia terbaca.
+    Route::get('/activities', [ActivityController::class, 'index'])->name('activities.index');
 
     // Inventaris peralatan
     Route::get('/equipment', [EquipmentController::class, 'index'])->name('equipment.index');
