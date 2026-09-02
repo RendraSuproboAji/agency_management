@@ -1,10 +1,11 @@
 import { useForm } from '@inertiajs/react';
+import { useState } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
 import { Button, ButtonLink, Field, Money, Table, Td, inputClass } from '@/Components/ui';
 
 const EMPTY_ITEM = { description: '', qty: 1, unit: 'paket', unit_price: '' };
 
-export default function Form({ project, serviceRequest, quotation, statuses }) {
+export default function Form({ project, serviceRequest, quotation, statuses, multipliers }) {
     // Satu form melayani dua konteks: penawaran untuk project yang sudah ada,
     // dan penawaran untuk calon klien yang baru mengirim permintaan.
     const target = project
@@ -21,6 +22,39 @@ export default function Form({ project, serviceRequest, quotation, statuses }) {
         notes: quotation.notes ?? '',
         items: quotation.items?.length ? quotation.items : [{ ...EMPTY_ITEM }],
     });
+
+    const [multiplier, setMultiplier] = useState('1');
+    const [estimating, setEstimating] = useState(false);
+    const [estimateNote, setEstimateNote] = useState('');
+
+    // Kalkulator ini menambah baris, tidak menimpa: yang sudah diketik penawar
+    // adalah keputusannya sendiri, dan kartu tarif cuma titik awal.
+    const estimate = async () => {
+        setEstimating(true);
+        setEstimateNote('');
+
+        try {
+            const response = await fetch(`${target.action}/estimate?multiplier=${multiplier}`, {
+                headers: { Accept: 'application/json' },
+            });
+            const payload = await response.json();
+            const suggested = payload.items ?? [];
+
+            if (suggested.length === 0) {
+                setEstimateNote('Belum ada tarif untuk layanan ini, atau luas dan scene-nya belum terisi.');
+            } else {
+                // Baris kosong bawaan form dibuang supaya hasilnya tidak diawali
+                // satu baris hampa yang harus dihapus manual.
+                const kept = data.items.filter((item) => item.description || item.unit_price);
+                setData('items', [...kept, ...suggested]);
+                setEstimateNote(`${suggested.length} baris ditambahkan. Silakan sunting bila perlu.`);
+            }
+        } catch (error) {
+            setEstimateNote('Gagal menghitung. Coba lagi.');
+        }
+
+        setEstimating(false);
+    };
 
     const setItem = (index, key, value) => setData('items', data.items.map(
         (item, position) => (position === index ? { ...item, [key]: value } : item),
@@ -63,6 +97,18 @@ export default function Form({ project, serviceRequest, quotation, statuses }) {
                 </div>
 
                 <h2 className="text-base font-semibold">Item penawaran</h2>
+
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                    <select className={`${inputClass} sm:w-auto`} value={multiplier} onChange={(e) => setMultiplier(e.target.value)}>
+                        {Object.entries(multipliers).map(([value, label]) => (
+                            <option key={value} value={value}>{label}</option>
+                        ))}
+                    </select>
+                    <Button type="button" small onClick={estimate} disabled={estimating}>
+                        {estimating ? 'Menghitung…' : 'Hitung dari kartu tarif'}
+                    </Button>
+                    {estimateNote && <span className="text-xs text-muted">{estimateNote}</span>}
+                </div>
                 {errors.items && <p className="text-sm text-danger">{errors.items}</p>}
 
                 <Table head={['Deskripsi', 'Qty', 'Satuan', 'Harga satuan', '']}>

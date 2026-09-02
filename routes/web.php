@@ -25,6 +25,7 @@ use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectSceneController;
 use App\Http\Controllers\PublicRequestController;
 use App\Http\Controllers\QuotationController;
+use App\Http\Controllers\ServiceRateController;
 use App\Http\Controllers\ServiceRequestController;
 use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
@@ -75,6 +76,12 @@ Route::middleware('auth:web')->group(function () {
     // Penawaran untuk calon klien: menempel pada permintaan yang masuk,
     // tanpa perlu membuat data klien dan project lebih dulu.
     Route::get('/requests/{serviceRequest}/quotations/create', [QuotationController::class, 'createForRequest'])->name('requests.quotations.create');
+    // Harus di atas rute {quotation}: kalau tidak, "estimate" terbaca sebagai
+    // nomor penawaran dan permintaannya berakhir 404.
+    Route::get('/requests/{serviceRequest}/quotations/estimate', [ServiceRateController::class, 'estimateForRequest'])
+        ->name('requests.quotations.estimate');
+    Route::get('/projects/{project}/quotations/estimate', [ServiceRateController::class, 'estimateForProject'])
+        ->name('projects.quotations.estimate');
     Route::post('/requests/{serviceRequest}/quotations', [QuotationController::class, 'storeForRequest'])->name('requests.quotations.store');
     Route::get('/requests/{serviceRequest}/quotations/{quotation}', [QuotationController::class, 'showForRequest'])->name('requests.quotations.show');
     Route::get('/requests/{serviceRequest}/quotations/{quotation}/print', [QuotationController::class, 'printForRequest'])->name('requests.quotations.print');
@@ -180,6 +187,15 @@ Route::middleware('auth:web')->group(function () {
         Route::get('/archive', [ArchiveController::class, 'index'])->name('archive.index');
         Route::put('/archive/{type}/{id}/restore', [ArchiveController::class, 'restore'])->name('archive.restore');
         Route::delete('/archive/{type}/{id}', [ArchiveController::class, 'forceDelete'])->name('archive.force-delete');
+
+        // Kartu tarif menentukan harga yang sampai ke klien, jadi hanya admin
+        // yang boleh mengubahnya; stafnya tetap bisa memakainya untuk menawar.
+        Route::get('/rates', [ServiceRateController::class, 'index'])->name('rates.index');
+        Route::get('/rates/create', [ServiceRateController::class, 'create'])->name('rates.create');
+        Route::post('/rates', [ServiceRateController::class, 'store'])->name('rates.store');
+        Route::get('/rates/{rate}/edit', [ServiceRateController::class, 'edit'])->name('rates.edit');
+        Route::put('/rates/{rate}', [ServiceRateController::class, 'update'])->name('rates.update');
+        Route::delete('/rates/{rate}', [ServiceRateController::class, 'destroy'])->name('rates.destroy');
 
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
         Route::get('/users/create', [UserController::class, 'create'])->name('users.create');

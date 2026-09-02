@@ -7,6 +7,7 @@ use App\Models\Quotation;
 use App\Models\ServiceRequest;
 use App\Support\ActivityLogger;
 use App\Support\DocumentNumber;
+use App\Support\QuotationEstimator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -30,6 +31,7 @@ class QuotationController extends Controller
                 'items' => [],
             ],
             'statuses' => Quotation::STATUSES,
+            'multipliers' => QuotationEstimator::MULTIPLIERS,
         ]);
     }
 
@@ -102,6 +104,7 @@ class QuotationController extends Controller
                 'items' => $quotation->items->map(fn ($item) => $item->only(['description', 'qty', 'unit', 'unit_price'])),
             ],
             'statuses' => Quotation::STATUSES,
+            'multipliers' => QuotationEstimator::MULTIPLIERS,
         ]);
     }
 
@@ -179,6 +182,7 @@ class QuotationController extends Controller
                 'items' => [],
             ],
             'statuses' => Quotation::STATUSES,
+            'multipliers' => QuotationEstimator::MULTIPLIERS,
         ]);
     }
 
@@ -226,6 +230,7 @@ class QuotationController extends Controller
                 'items' => $quotation->items->map(fn ($item) => $item->only(['description', 'qty', 'unit', 'unit_price'])),
             ],
             'statuses' => Quotation::STATUSES,
+            'multipliers' => QuotationEstimator::MULTIPLIERS,
         ]);
     }
 

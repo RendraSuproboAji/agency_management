@@ -14,6 +14,7 @@ const NAV = [
 ];
 
 const ADMIN_NAV = [
+    { label: 'Kartu tarif', route: '/rates' },
     { label: 'Pengguna', route: '/users' },
     { label: 'Arsip', route: '/archive' },
 ];

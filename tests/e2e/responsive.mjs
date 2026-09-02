@@ -26,7 +26,7 @@ const GUEST_PAGES = ['/login', '/forgot-password', '/request', '/portal/login', 
 const STAFF_PAGES = [
     '/', '/clients', '/projects', '/equipment', '/invoices',
     '/sessions', '/sessions?view=calendar', '/requests', '/users',
-    '/archive', '/activities', '/activities?subject=client',
+    '/archive', '/activities', '/activities?subject=client', '/rates', '/rates/create',
     '/profile', '/clients/create', '/projects/create',
 ];
 

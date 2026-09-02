@@ -10,6 +10,7 @@ use App\Models\Equipment;
 use App\Models\Invoice;
 use App\Models\Project;
 use App\Models\Quotation;
+use App\Models\ServiceRate;
 use App\Models\ServiceRequest;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -69,6 +70,13 @@ class SmokeTest extends TestCase
         $quotation = Quotation::factory()->create(['project_id' => $project->id]);
         $invoice = Invoice::factory()->create(['project_id' => $project->id]);
         $equipment = Equipment::factory()->create();
+        $rate = ServiceRate::create([
+            'service_type' => 'gaussian_splatting',
+            'unit' => 'sqm',
+            'label' => 'Pemindaian area',
+            'unit_price' => 25_000,
+            'active' => true,
+        ]);
         $serviceRequest = ServiceRequest::factory()->create();
         $attachment = Attachment::factory()->create([
             'project_id' => $project->id,
@@ -83,6 +91,7 @@ class SmokeTest extends TestCase
             'quotation' => $quotation->id,
             'invoice' => $invoice->id,
             'equipment' => $equipment->id,
+            'rate' => $rate->id,
             'serviceRequest' => $serviceRequest->id,
             'user' => $admin->id,
             'attachment' => $attachment->id,
