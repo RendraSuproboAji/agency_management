@@ -15,6 +15,7 @@ export default function Form({ client, statuses }) {
         address: client.address ?? '',
         notes: client.notes ?? '',
         portal_enabled: client.portal_enabled ?? false,
+        raw_retention_days: client.raw_retention_days ?? '',
         password: '',
     });
 
@@ -51,6 +52,11 @@ export default function Form({ client, statuses }) {
                     </Field>
                     <Field label="Alamat" error={errors.address} wide>
                         <input className={inputClass} value={data.address} onChange={(e) => setData('address', e.target.value)} />
+                    </Field>
+                    <Field label="Retensi data mentah (hari)" error={errors.raw_retention_days}>
+                        <input type="number" min="0" max="3650" className={inputClass} placeholder="Ikuti aturan umum"
+                               value={data.raw_retention_days ?? ''}
+                               onChange={(e) => setData('raw_retention_days', e.target.value)} />
                     </Field>
                     <Field label="Catatan" error={errors.notes} wide>
                         <textarea rows={4} className={inputClass} value={data.notes} onChange={(e) => setData('notes', e.target.value)} />

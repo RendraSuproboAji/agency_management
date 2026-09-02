@@ -23,7 +23,7 @@ function Row({ href, title, meta }) {
 export default function Dashboard({
     statuses, countsByStatus, clientCount, activeProjectCount, newRequestCount,
     latestRequests, upcomingDeadlines, upcomingSessions, pendingDeliverables,
-    receivable, dueInvoices, overdueInvoices, overdueCount, overdueTotal, runningJobs,
+    receivable, dueInvoices, overdueInvoices, overdueCount, overdueTotal, runningJobs, rawCleanup,
 }) {
     return (
         <AppLayout title="Dashboard">
@@ -38,6 +38,15 @@ export default function Dashboard({
                 <Stat value={runningJobs.length} label="Job berjalan" />
                 <Stat value={<Money amount={receivable} />} label="Piutang berjalan" />
             </div>
+
+            {rawCleanup.sessions > 0 && (
+                <p className="mb-4 text-sm text-muted">
+                    <Link href="/raw-data" className="text-accent">{rawCleanup.sessions} sesi</Link>{' '}
+                    sudah boleh dibersihkan —{' '}
+                    {rawCleanup.gb >= 1024 ? `${(rawCleanup.gb / 1024).toFixed(2)} TB` : `${rawCleanup.gb} GB`}{' '}
+                    data mentah bisa dilepas dari penyimpanan.
+                </p>
+            )}
 
             <Panel title="Pipeline produksi">
                 <div className="flex flex-wrap gap-2">

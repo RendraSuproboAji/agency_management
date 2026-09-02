@@ -15,6 +15,7 @@ use Illuminate\Notifications\Notifiable;
 #[Fillable([
     'name', 'slug', 'contact_name', 'email', 'phone',
     'industry', 'address', 'notes', 'status', 'password', 'portal_enabled',
+    'raw_retention_days',
 ])]
 #[Hidden(['password', 'remember_token'])]
 class Client extends Authenticatable

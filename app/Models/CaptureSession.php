@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 #[Fillable([
     'project_id', 'scene_id', 'crew_id', 'scheduled_at', 'completed_at', 'location',
     'equipment_note', 'shot_count', 'raw_size_gb', 'frame_count',
-    'backup_location', 'weather_note', 'status', 'notes',
+    'backup_location', 'raw_purged_at', 'weather_note', 'status', 'notes',
 ])]
 class CaptureSession extends Model
 {
@@ -27,6 +27,7 @@ class CaptureSession extends Model
         return [
             'scheduled_at' => 'datetime',
             'completed_at' => 'datetime',
+            'raw_purged_at' => 'datetime',
             'raw_size_gb' => 'decimal:2',
         ];
     }

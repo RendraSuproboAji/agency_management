@@ -9,6 +9,7 @@ use App\Models\Invoice;
 use App\Models\ProcessingJob;
 use App\Models\Project;
 use App\Models\ServiceRequest;
+use App\Support\RawData;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
@@ -100,6 +101,9 @@ class DashboardController extends Controller
                     'project_title' => $deliverable->project->title,
                     'client_name' => $deliverable->project->client->name,
                 ]),
+            // Kebersihan penyimpanan terlihat harian tanpa perlu surat
+            // pengingat baru; rinciannya ada di halaman /storage.
+            'rawCleanup' => $this->rawCleanup(),
         ]);
     }
 
@@ -107,6 +111,23 @@ class DashboardController extends Controller
      * @param  Builder<Invoice>  $query
      * @return Collection<int, array<string, mixed>>
      */
+    /** @return array{sessions: int, gb: float} */
+    private function rawCleanup(): array
+    {
+        $sessions = CaptureSession::query()
+            ->whereHas('project')
+            ->whereNotNull('raw_size_gb')
+            ->whereNull('raw_purged_at')
+            ->with('project.client', 'project.deliverables')
+            ->get()
+            ->filter(fn (CaptureSession $session) => RawData::status($session) === RawData::READY);
+
+        return [
+            'sessions' => $sessions->count(),
+            'gb' => round($sessions->sum(fn (CaptureSession $session) => (float) $session->raw_size_gb), 2),
+        ];
+    }
+
     private function invoiceRows(mixed $query): Collection
     {
         return $query->with('project.client', 'payments')

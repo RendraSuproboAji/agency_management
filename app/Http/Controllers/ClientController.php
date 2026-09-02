@@ -163,6 +163,9 @@ class ClientController extends Controller
             'industry' => ['nullable', 'string', 'max:100'],
             'address' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
+            // Kosong berarti mengikuti aturan umum; angka di sini hanya untuk
+            // klien yang memang menuntut arsip lebih panjang atau lebih pendek.
+            'raw_retention_days' => ['nullable', 'integer', 'min:0', 'max:3650'],
             'status' => ['required', 'in:'.implode(',', Client::STATUSES)],
             'password' => ['nullable', 'string', Password::defaults()],
         ]);

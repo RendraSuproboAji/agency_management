@@ -27,6 +27,7 @@ use App\Http\Controllers\PublicRequestController;
 use App\Http\Controllers\QuotationController;
 use App\Http\Controllers\ServiceRateController;
 use App\Http\Controllers\ServiceRequestController;
+use App\Http\Controllers\StorageController;
 use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -95,6 +96,15 @@ Route::middleware('auth:web')->group(function () {
     Route::delete('/requests/{serviceRequest}', [ServiceRequestController::class, 'destroy'])
         ->middleware('admin')
         ->name('requests.destroy');
+
+    // Daur hidup data mentah: satu-satunya layar yang menotal terabyte yang
+    // sedang ditahan dan menandai sesi tanpa salinan.
+    //
+    // Alamatnya /raw-data, bukan /storage: public/storage adalah symlink ke
+    // disk publik, jadi server web menyajikannya sendiri dan permintaannya
+    // tidak pernah sampai ke Laravel.
+    Route::get('/raw-data', [StorageController::class, 'index'])->name('storage.index');
+    Route::put('/raw-data/sessions/{session}/purge', [StorageController::class, 'purge'])->name('storage.purge');
 
     // Riwayat lintas data — aktivitas klien dan peralatan tidak punya project
     // sebagai induk, jadi hanya di sini ia terbaca.
