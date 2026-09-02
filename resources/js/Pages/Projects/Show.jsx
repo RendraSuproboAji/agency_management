@@ -3,7 +3,7 @@ import AppLayout from '@/Layouts/AppLayout';
 import { useServerState } from '@/useServerState';
 import { Badge, Button, ButtonLink, ConfirmButton, DetailList, Money, PageHead, Panel, Table, Td, inputClass } from '@/Components/ui';
 
-export default function Show({ project, canManage, statuses, billed, paid, rawSizeGb, jobKinds, jobStatuses, attachmentCategories }) {
+export default function Show({ project, canManage, estimate, statuses, billed, paid, rawSizeGb, jobKinds, jobStatuses, attachmentCategories }) {
     const { auth } = usePage().props;
     const [status, setStatus] = useServerState(project.status);
     const base = `/projects/${project.slug}`;
@@ -135,13 +135,30 @@ export default function Show({ project, canManage, statuses, billed, paid, rawSi
             <Panel title="Job processing">
                 <p className="text-sm text-muted">Total data mentah dari seluruh sesi: {rawSizeGb} GB</p>
 
+                {estimate && (
+                    <p className="mb-2 text-sm text-muted">
+                        Sisa pekerjaan <strong className="text-ink">{estimate.duration}</strong>,
+                        perkiraan rampung <strong className="text-ink">{estimate.finish_at}</strong>.{' '}
+                        {estimate.basis.charAt(0).toUpperCase() + estimate.basis.slice(1)} sejenis —
+                        perkiraan, bukan janji.
+                    </p>
+                )}
+
                 <Table head={['Jenis', 'Sesi', 'Mesin', 'Durasi', 'Output', 'Status', '']} empty="Belum ada job processing.">
                     {project.processing_jobs.map((item) => (
                         <tr key={item.id}>
                             <Td>{item.kind}</Td>
                             <Td>{item.session ?? '—'}</Td>
                             <Td>{item.machine ?? '—'}</Td>
-                            <Td>{item.duration}</Td>
+                            <Td>
+                                {item.duration}
+                                {item.estimate && <>
+                                    <br />
+                                    <small className="text-muted" title={item.estimate_basis}>
+                                        {item.estimate} ({item.estimate_basis})
+                                    </small>
+                                </>}
+                            </Td>
                             <Td>{item.output_size_gb ? `${item.output_size_gb} GB` : '—'}</Td>
                             <Td>
                                 <Badge status={item.status} />

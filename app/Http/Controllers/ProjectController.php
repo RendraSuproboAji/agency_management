@@ -9,6 +9,7 @@ use App\Models\Project;
 use App\Models\User;
 use App\Support\ActivityLogger;
 use App\Support\Archive;
+use App\Support\JobEstimator;
 use App\Support\Slug;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -87,6 +88,7 @@ class ProjectController extends Controller
         ]);
 
         $billed = $project->invoices->sum(fn ($invoice) => (float) $invoice->amount);
+        $projectEstimate = JobEstimator::forProject($project);
 
         $user = $request->user();
 
@@ -133,12 +135,23 @@ class ProjectController extends Controller
                     'amount' => (float) $invoice->amount,
                     'outstanding' => $invoice->outstanding(),
                 ]),
-                'processing_jobs' => $project->processingJobs->map(fn ($job) => [
-                    ...$job->only(['id', 'status', 'machine', 'notes', 'output_size_gb']),
-                    'kind' => str_replace('_', ' ', $job->kind),
-                    'duration' => $job->humanDuration(),
-                    'session' => $job->captureSession?->scheduled_at->format('d M Y'),
-                ]),
+                'processing_jobs' => $project->processingJobs->map(function ($job) {
+                    // Perkiraan hanya untuk yang belum selesai; job yang sudah
+                    // rampung punya durasi sungguhan, dan menaruh tebakan di
+                    // sebelah fakta hanya membingungkan.
+                    $estimate = in_array($job->status, ['queued', 'running'], true)
+                        ? JobEstimator::forJob($job)
+                        : null;
+
+                    return [
+                        ...$job->only(['id', 'status', 'machine', 'notes', 'output_size_gb']),
+                        'kind' => str_replace('_', ' ', $job->kind),
+                        'duration' => $job->humanDuration(),
+                        'estimate' => $estimate?->humanDuration(),
+                        'estimate_basis' => $estimate?->basis(),
+                        'session' => $job->captureSession?->scheduled_at->format('d M Y'),
+                    ];
+                }),
                 'attachments' => $project->attachments->map(fn ($attachment) => [
                     ...$attachment->only(['id', 'title', 'category']),
                     'size' => $attachment->humanSize(),
@@ -163,6 +176,12 @@ class ProjectController extends Controller
                 ]),
             ],
             'canManage' => $project->isManageableBy($user),
+            // Perkiraan, bukan janji: layarnya menyebut jumlah sampelnya juga.
+            'estimate' => $projectEstimate ? [
+                'duration' => $projectEstimate->humanDuration(),
+                'basis' => $projectEstimate->basis(),
+                'finish_at' => now()->addMinutes($projectEstimate->minutes)->format('d M Y H:i'),
+            ] : null,
             'statuses' => Project::STATUSES,
             'jobKinds' => ProcessingJob::KINDS,
             'jobStatuses' => ProcessingJob::STATUSES,
