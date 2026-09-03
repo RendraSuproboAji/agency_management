@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Inertia\Testing\AssertableInertia;
 use Tests\TestCase;
 
 class DeliverableTest extends TestCase
@@ -16,7 +17,7 @@ class DeliverableTest extends TestCase
 
     public function test_a_deliverable_file_is_stored_under_the_project_slug(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
 
         $owner = User::factory()->create();
         $project = Project::factory()->create(['owner_id' => $owner->id, 'slug' => 'showroom-kemang']);
@@ -32,7 +33,7 @@ class DeliverableTest extends TestCase
         $deliverable = $project->deliverables()->firstOrFail();
 
         $this->assertStringStartsWith('deliverables/showroom-kemang/', $deliverable->file_path);
-        Storage::disk('public')->assertExists($deliverable->file_path);
+        Storage::disk('local')->assertExists($deliverable->file_path);
         $this->assertNotNull($deliverable->submitted_at);
     }
 
@@ -95,13 +96,13 @@ class DeliverableTest extends TestCase
         $this->assertSame('Warna terlalu gelap.', $deliverable->review_note);
     }
 
-    public function test_deleting_a_deliverable_removes_its_file(): void
+    public function test_deleting_a_deliverable_archives_it_and_keeps_the_file(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
 
         $owner = User::factory()->create();
         $project = Project::factory()->create(['owner_id' => $owner->id]);
-        Storage::disk('public')->put('deliverables/scene.ply', 'x');
+        Storage::disk('local')->put('deliverables/scene.ply', 'x');
         $deliverable = Deliverable::factory()->create([
             'project_id' => $project->id,
             'file_path' => 'deliverables/scene.ply',
@@ -111,8 +112,63 @@ class DeliverableTest extends TestCase
             ->delete(route('deliverables.destroy', [$project, $deliverable]))
             ->assertRedirect();
 
-        Storage::disk('public')->assertMissing('deliverables/scene.ply');
-        $this->assertDatabaseMissing('deliverables', ['id' => $deliverable->id]);
+        // Berkas tetap ada supaya arsip bisa dipulihkan utuh; berkas baru
+        // dibuang saat hapus permanen (lihat ArchiveTest).
+        Storage::disk('local')->assertExists('deliverables/scene.ply');
+        $this->assertSoftDeleted('deliverables', ['id' => $deliverable->id]);
+    }
+
+    public function test_the_form_pages_render(): void
+    {
+        $owner = User::factory()->create();
+        $project = Project::factory()->create(['owner_id' => $owner->id]);
+        $deliverable = Deliverable::factory()->create(['project_id' => $project->id, 'title' => 'Scene utama']);
+
+        $this->actingAs($owner)->get(route('deliverables.create', $project))
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page->component('Deliverables/Form'));
+
+        $this->actingAs($owner)->get(route('deliverables.edit', [$project, $deliverable]))
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Deliverables/Form')
+                ->where('deliverable.title', 'Scene utama'));
+    }
+
+    public function test_the_next_version_skips_numbers_used_by_archived_deliverables(): void
+    {
+        $owner = User::factory()->create();
+        $project = Project::factory()->create(['owner_id' => $owner->id]);
+        Deliverable::factory()->create(['project_id' => $project->id, 'version' => 3])->delete();
+
+        $this->actingAs($owner)->get(route('deliverables.create', $project))
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page->where('deliverable.version', 4));
+    }
+
+    public function test_moving_out_of_approved_clears_the_approval_date(): void
+    {
+        $owner = User::factory()->create();
+        $project = Project::factory()->create(['owner_id' => $owner->id]);
+        $deliverable = Deliverable::factory()->create([
+            'project_id' => $project->id,
+            'status' => 'approved',
+            'approved_at' => now(),
+            'submitted_at' => now()->subDay(),
+        ]);
+
+        $this->actingAs($owner)->put(route('deliverables.update', [$project, $deliverable]), [
+            'title' => $deliverable->title,
+            'type' => $deliverable->type,
+            'version' => $deliverable->version,
+            'status' => 'revision',
+            'review_note' => 'Warna terlalu gelap.',
+        ])->assertRedirect();
+
+        $deliverable->refresh();
+        $this->assertSame('revision', $deliverable->status);
+        $this->assertNull($deliverable->approved_at, 'tanggal disetujui harus ikut hilang');
+        $this->assertNotNull($deliverable->submitted_at);
     }
 
     public function test_staff_cannot_touch_deliverables_on_someone_elses_project(): void

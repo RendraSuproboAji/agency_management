@@ -1,23 +1,56 @@
 services:
-  app:
+  # nginx: melayani berkas statis dan unduhan besar tanpa menahan proses PHP.
+  web:
     build:
       context: .
+      target: web
       args:
         BASE_REGISTRY: ${BASE_REGISTRY:-docker.io}
     ports:
       - "8080:80"
-    environment:
+    volumes:
+      - agency-storage:/var/www/html/storage
+    depends_on:
+      - app
+    healthcheck:
+      # Sengaja bukan /up: endpoint itu tetap 200 walau APP_KEY kosong dan
+      # seluruh halaman 500. /login membangkitkan encrypter dan sesi database,
+      # jadi kegagalan konfigurasi benar-benar tertangkap.
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/login"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  app: &app
+    build:
+      context: .
+      target: runtime
+      args:
+        BASE_REGISTRY: ${BASE_REGISTRY:-docker.io}
+    environment: &app-env
       APP_NAME: "Agency Management"
       APP_ENV: production
+      APP_TIMEZONE: "${APP_TIMEZONE:-Asia/Jakarta}"
+      SESSION_SECURE_COOKIE: "${SESSION_SECURE_COOKIE:-false}"
+      TRUSTED_PROXIES: "*"
       APP_DEBUG: "false"
       APP_KEY: "${APP_KEY:-}"
-      APP_URL: "http://localhost:8080"
+      APP_URL: "${APP_URL:-http://localhost:8080}"
       LOG_CHANNEL: stderr
       DB_CONNECTION: sqlite
       DB_DATABASE: /var/www/html/storage/database/database.sqlite
       SESSION_DRIVER: database
       CACHE_STORE: database
       QUEUE_CONNECTION: database
+      # Pengingat harian; default `log` hanya menulis ke log container.
+      MAIL_MAILER: "${MAIL_MAILER:-log}"
+      MAIL_HOST: "${MAIL_HOST:-127.0.0.1}"
+      MAIL_PORT: "${MAIL_PORT:-2525}"
+      MAIL_USERNAME: "${MAIL_USERNAME:-}"
+      MAIL_PASSWORD: "${MAIL_PASSWORD:-}"
+      MAIL_FROM_ADDRESS: "${MAIL_FROM_ADDRESS:-no-reply@example.com}"
+      MAIL_FROM_NAME: "Agency Management"
       FILESYSTEM_DISK: local
       ADMIN_NAME: "Administrator"
       ADMIN_EMAIL: "${ADMIN_EMAIL:-admin@example.com}"
@@ -25,15 +58,18 @@ services:
       SEED_DEMO: "${SEED_DEMO:-true}"
     volumes:
       - agency-storage:/var/www/html/storage
-    healthcheck:
-      # Sengaja bukan /up: endpoint itu tetap 200 walau APP_KEY kosong dan
-      # seluruh halaman 500. /login membangkitkan encrypter dan sesi database,
-      # jadi kegagalan konfigurasi benar-benar tertangkap.
-      test: ["CMD", "curl", "-fsS", "http://localhost/login"]
-      interval: 30s
-      timeout: 5s
-      retries: 5
     restart: unless-stopped
+
+  # Scheduler terpisah supaya container PHP-FPM tetap melayani request saja.
+  scheduler:
+    <<: *app
+    command: php artisan schedule:work
+    environment:
+      <<: *app-env
+      SEED_DEMO: "false"
+    depends_on:
+      - app
+    ports: []
 
 volumes:
   agency-storage:

@@ -10,11 +10,13 @@ use App\Support\Slug;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\View\View;
+use Illuminate\Validation\Rule;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class ServiceRequestController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request): Response
     {
         $requests = ServiceRequest::query()
             ->with('convertedProject')
@@ -24,17 +26,40 @@ class ServiceRequestController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        return view('requests.index', [
+        $requests->through(fn (ServiceRequest $item) => [
+            ...$item->only(['id', 'name', 'company', 'email', 'status', 'site_location']),
+            'service_type' => str_replace('_', ' ', $item->service_type),
+            'created_at' => $item->created_at->format('d M Y'),
+        ]);
+
+        return Inertia::render('Requests/Index', [
             'requests' => $requests,
             'filters' => $request->only(['q', 'status']),
+            'statuses' => ServiceRequest::STATUSES,
         ]);
     }
 
-    public function show(ServiceRequest $serviceRequest): View
+    public function show(ServiceRequest $serviceRequest): Response
     {
-        return view('requests.show', [
-            'serviceRequest' => $serviceRequest->load('convertedProject'),
-            'clients' => Client::orderBy('name')->get(),
+        $serviceRequest->load('convertedProject', 'quotations.items');
+
+        return Inertia::render('Requests/Show', [
+            'serviceRequest' => [
+                ...$serviceRequest->only(['id', 'name', 'company', 'email', 'phone', 'status', 'site_location', 'area_sqm', 'message']),
+                'service_type' => str_replace('_', ' ', $serviceRequest->service_type),
+                'created_at' => $serviceRequest->created_at->format('d M Y H:i'),
+                'converted_project' => $serviceRequest->convertedProject?->only(['slug', 'title']),
+                'quotations' => $serviceRequest->quotations->map(fn ($quotation) => [
+                    ...$quotation->only(['id', 'number', 'status']),
+                    'is_expired' => $quotation->isExpired(),
+                    'issued_at' => $quotation->issued_at->format('d M Y'),
+                    'total' => $quotation->total(),
+                    'url' => route('requests.quotations.show', [$serviceRequest, $quotation]),
+                    'print_url' => route('requests.quotations.print', [$serviceRequest, $quotation]),
+                ]),
+            ],
+            'clients' => Client::orderBy('name')->get(['id', 'name']),
+            'statuses' => ServiceRequest::STATUSES,
         ]);
     }
 
@@ -60,7 +85,9 @@ class ServiceRequestController extends Controller
         }
 
         $data = $request->validate([
-            'client_id' => ['nullable', 'exists:clients,id'],
+            // convert() memakai Client::findOrFail yang menyaring arsip; tanpa
+            // whereNull di sini validasi lolos lalu konversinya 404.
+            'client_id' => ['nullable', Rule::exists('clients', 'id')->whereNull('deleted_at')],
             'title' => ['required', 'string', 'max:150'],
         ]);
 
@@ -89,6 +116,14 @@ class ServiceRequestController extends Controller
                 'area_sqm' => $serviceRequest->area_sqm,
             ]);
 
+            // Penawaran yang sudah dikirim ke calon klien ikut pindah ke
+            // project baru, supaya riwayatnya utuh dan tidak ada penawaran
+            // yang menggantung tanpa induk.
+            $serviceRequest->quotations()->update([
+                'project_id' => $project->id,
+                'service_request_id' => null,
+            ]);
+
             $serviceRequest->update([
                 'status' => 'converted',
                 'converted_project_id' => $project->id,
@@ -105,6 +140,22 @@ class ServiceRequestController extends Controller
 
     public function destroy(ServiceRequest $serviceRequest): RedirectResponse
     {
+        // Permintaan dihapus permanen, sementara service_request_id pada
+        // penawaran memakai nullOnDelete. Tanpa penjaga ini penawarannya
+        // kehilangan project dan permintaan sekaligus: penerimanya kosong,
+        // tidak muncul di layar mana pun, dan nomor dokumennya hangus.
+        //
+        // withTrashed() disengaja — penawaran yang sudah diarsipkan pun
+        // menahan penghapusan, kalau tidak arsipkan-lalu-hapus menghasilkan
+        // baris yatim yang sama, hanya tersembunyi.
+        if ($serviceRequest->quotations()->withTrashed()->exists()) {
+            return back()->withErrors([
+                'request' => 'Request ini sudah punya penawaran, jadi tidak bisa dihapus. '.
+                    'Konversi jadi project supaya penawarannya ikut pindah, atau hapus permanen '.
+                    'penawarannya lebih dulu dari halaman Arsip.',
+            ]);
+        }
+
         $serviceRequest->delete();
 
         return redirect()->route('requests.index')->with('status', 'Request dihapus.');

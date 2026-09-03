@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable([
     'client_id', 'owner_id', 'title', 'slug', 'brief', 'service_type',
@@ -17,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Project extends Model
 {
     /** @use HasFactory<ProjectFactory> */
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     /** Pipeline produksi, berurutan dari kiri ke kanan. */
     public const STATUSES = [
@@ -49,6 +50,11 @@ class Project extends Model
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_id');
+    }
+
+    public function scenes(): HasMany
+    {
+        return $this->hasMany(ProjectScene::class)->orderBy('position')->orderBy('id');
     }
 
     public function captureSessions(): HasMany
@@ -94,7 +100,13 @@ class Project extends Model
     /** Boleh diubah oleh admin, atau oleh staff yang jadi penanggung jawab. */
     public function isManageableBy(User $user): bool
     {
-        return $user->isAdmin() || $this->owner_id === $user->id;
+        // Project tanpa PIC terbuka untuk seluruh staf. Akun staf dihapus
+        // permanen dan owner_id-nya jatuh ke null; tanpa baris ini project
+        // itu membeku — terlihat oleh semua orang, tak tersentuh siapa pun
+        // kecuali admin.
+        return $user->isAdmin()
+            || $this->owner_id === null
+            || $this->owner_id === $user->id;
     }
 
     public function scopeStatus(Builder $query, ?string $status): Builder

@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\ActivityController;
+use App\Http\Controllers\ArchiveController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CaptureSessionController;
@@ -9,16 +11,28 @@ use App\Http\Controllers\DeliverableController;
 use App\Http\Controllers\EquipmentController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\NoteController;
+use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\Portal\AttachmentController as PortalAttachmentController;
 use App\Http\Controllers\Portal\AuthController as PortalAuthController;
 use App\Http\Controllers\Portal\DeliverableController as PortalDeliverableController;
+use App\Http\Controllers\Portal\DocumentController as PortalDocumentController;
+use App\Http\Controllers\Portal\MessageController as PortalMessageController;
 use App\Http\Controllers\Portal\ProjectController as PortalProjectController;
+use App\Http\Controllers\Portal\QuotationController as PortalQuotationController;
 use App\Http\Controllers\ProcessingJobController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\ProjectSceneController;
 use App\Http\Controllers\PublicRequestController;
 use App\Http\Controllers\QuotationController;
+use App\Http\Controllers\ReportController;
+use App\Http\Controllers\SearchController;
+use App\Http\Controllers\ServiceRateController;
 use App\Http\Controllers\ServiceRequestController;
+use App\Http\Controllers\StorageController;
 use App\Http\Controllers\UserController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 // Form request klien — publik, tanpa login.
@@ -30,6 +44,16 @@ Route::post('/request', [PublicRequestController::class, 'store'])
 Route::middleware('guest:web')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:6,1');
+
+    // Lupa kata sandi staf. Throttle sama ketatnya dengan login: halaman ini
+    // mengirim email atas nama siapa pun yang menebak alamat.
+    Route::get('/forgot-password', fn () => app(PasswordResetController::class)->request('web'))->name('password.request');
+    Route::post('/forgot-password', fn (Request $request) => app(PasswordResetController::class)->email($request, 'web'))
+        ->middleware('throttle:6,1')->name('password.email');
+    Route::get('/reset-password/{token}', fn (string $token, Request $request) => app(PasswordResetController::class)->reset('web', $token, $request))
+        ->name('password.reset');
+    Route::post('/reset-password', fn (Request $request) => app(PasswordResetController::class)->update($request, 'web'))
+        ->middleware('throttle:6,1')->name('password.update');
 });
 
 Route::middleware('auth:web')->group(function () {
@@ -37,6 +61,11 @@ Route::middleware('auth:web')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
     // Klien
+    // Profil sendiri: mengganti kata sandi tidak lagi harus lewat admin.
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
+
     Route::get('/clients', [ClientController::class, 'index'])->name('clients.index');
     Route::get('/clients/create', [ClientController::class, 'create'])->name('clients.create');
     Route::post('/clients', [ClientController::class, 'store'])->name('clients.store');
@@ -48,11 +77,49 @@ Route::middleware('auth:web')->group(function () {
     // Request masuk dari form publik
     Route::get('/requests', [ServiceRequestController::class, 'index'])->name('requests.index');
     Route::get('/requests/{serviceRequest}', [ServiceRequestController::class, 'show'])->name('requests.show');
+    // Penawaran untuk calon klien: menempel pada permintaan yang masuk,
+    // tanpa perlu membuat data klien dan project lebih dulu.
+    Route::get('/requests/{serviceRequest}/quotations/create', [QuotationController::class, 'createForRequest'])->name('requests.quotations.create');
+    // Harus di atas rute {quotation}: kalau tidak, "estimate" terbaca sebagai
+    // nomor penawaran dan permintaannya berakhir 404.
+    Route::get('/requests/{serviceRequest}/quotations/estimate', [ServiceRateController::class, 'estimateForRequest'])
+        ->name('requests.quotations.estimate');
+    Route::get('/projects/{project}/quotations/estimate', [ServiceRateController::class, 'estimateForProject'])
+        ->name('projects.quotations.estimate');
+    Route::post('/requests/{serviceRequest}/quotations', [QuotationController::class, 'storeForRequest'])->name('requests.quotations.store');
+    Route::get('/requests/{serviceRequest}/quotations/{quotation}', [QuotationController::class, 'showForRequest'])->name('requests.quotations.show');
+    Route::get('/requests/{serviceRequest}/quotations/{quotation}/print', [QuotationController::class, 'printForRequest'])->name('requests.quotations.print');
+    Route::get('/requests/{serviceRequest}/quotations/{quotation}/edit', [QuotationController::class, 'editForRequest'])->name('requests.quotations.edit');
+    Route::put('/requests/{serviceRequest}/quotations/{quotation}', [QuotationController::class, 'updateForRequest'])->name('requests.quotations.update');
+    Route::put('/requests/{serviceRequest}/quotations/{quotation}/accept', [QuotationController::class, 'acceptForRequest'])->name('requests.quotations.accept');
+    Route::delete('/requests/{serviceRequest}/quotations/{quotation}', [QuotationController::class, 'destroyForRequest'])->name('requests.quotations.destroy');
+
     Route::put('/requests/{serviceRequest}/status', [ServiceRequestController::class, 'updateStatus'])->name('requests.status');
     Route::post('/requests/{serviceRequest}/convert', [ServiceRequestController::class, 'convert'])->name('requests.convert');
     Route::delete('/requests/{serviceRequest}', [ServiceRequestController::class, 'destroy'])
         ->middleware('admin')
         ->name('requests.destroy');
+
+    // Satu kotak cari lintas jenis data; tiap daftar tetap punya penyaringnya.
+    Route::get('/search', [SearchController::class, 'index'])->name('search.index');
+
+    // Laporan periode dan ekspornya.
+    Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+    Route::get('/reports/invoices.csv', [ReportController::class, 'invoices'])->name('reports.invoices');
+    Route::get('/reports/payments.csv', [ReportController::class, 'payments'])->name('reports.payments');
+
+    // Daur hidup data mentah: satu-satunya layar yang menotal terabyte yang
+    // sedang ditahan dan menandai sesi tanpa salinan.
+    //
+    // Alamatnya /raw-data, bukan /storage: public/storage adalah symlink ke
+    // disk publik, jadi server web menyajikannya sendiri dan permintaannya
+    // tidak pernah sampai ke Laravel.
+    Route::get('/raw-data', [StorageController::class, 'index'])->name('storage.index');
+    Route::put('/raw-data/sessions/{session}/purge', [StorageController::class, 'purge'])->name('storage.purge');
+
+    // Riwayat lintas data — aktivitas klien dan peralatan tidak punya project
+    // sebagai induk, jadi hanya di sini ia terbaca.
+    Route::get('/activities', [ActivityController::class, 'index'])->name('activities.index');
 
     // Inventaris peralatan
     Route::get('/equipment', [EquipmentController::class, 'index'])->name('equipment.index');
@@ -76,6 +143,12 @@ Route::middleware('auth:web')->group(function () {
     Route::delete('/projects/{project}', [ProjectController::class, 'destroy'])->name('projects.destroy');
 
     // Sesi pengambilan gambar milik satu project
+    // Scene per project (mis. lobi, ruang pamer) — deliverable dan sesi bisa
+    // ditautkan ke salah satunya.
+    Route::post('/projects/{project}/scenes', [ProjectSceneController::class, 'store'])->name('scenes.store');
+    Route::put('/projects/{project}/scenes/{scene}', [ProjectSceneController::class, 'update'])->name('scenes.update');
+    Route::delete('/projects/{project}/scenes/{scene}', [ProjectSceneController::class, 'destroy'])->name('scenes.destroy');
+
     Route::get('/projects/{project}/sessions/create', [CaptureSessionController::class, 'create'])->name('sessions.create');
     Route::post('/projects/{project}/sessions', [CaptureSessionController::class, 'store'])->name('sessions.store');
     Route::get('/projects/{project}/sessions/{session}/edit', [CaptureSessionController::class, 'edit'])->name('sessions.edit');
@@ -86,6 +159,7 @@ Route::middleware('auth:web')->group(function () {
     // Deliverable
     Route::get('/projects/{project}/deliverables/create', [DeliverableController::class, 'create'])->name('deliverables.create');
     Route::post('/projects/{project}/deliverables', [DeliverableController::class, 'store'])->name('deliverables.store');
+    Route::get('/projects/{project}/deliverables/{deliverable}/download', [DeliverableController::class, 'download'])->name('deliverables.download');
     Route::get('/projects/{project}/deliverables/{deliverable}/edit', [DeliverableController::class, 'edit'])->name('deliverables.edit');
     Route::put('/projects/{project}/deliverables/{deliverable}', [DeliverableController::class, 'update'])->name('deliverables.update');
     Route::put('/projects/{project}/deliverables/{deliverable}/approve', [DeliverableController::class, 'approve'])->name('deliverables.approve');
@@ -104,6 +178,7 @@ Route::middleware('auth:web')->group(function () {
     Route::get('/projects/{project}/attachments/{attachment}', [AttachmentController::class, 'download'])->name('attachments.download');
     Route::delete('/projects/{project}/attachments/{attachment}', [AttachmentController::class, 'destroy'])->name('attachments.destroy');
     Route::post('/projects/{project}/notes', [NoteController::class, 'store'])->name('notes.store');
+    Route::put('/projects/{project}/notes/{note}/share', [NoteController::class, 'share'])->name('notes.share');
     Route::delete('/projects/{project}/notes/{note}', [NoteController::class, 'destroy'])->name('notes.destroy');
 
     // Penawaran
@@ -128,8 +203,21 @@ Route::middleware('auth:web')->group(function () {
     Route::post('/projects/{project}/invoices/{invoice}/payments', [PaymentController::class, 'store'])->name('payments.store');
     Route::delete('/projects/{project}/invoices/{invoice}/payments/{payment}', [PaymentController::class, 'destroy'])->name('payments.destroy');
 
-    // Kelola pengguna (admin saja)
+    // Kelola pengguna & arsip (admin saja)
     Route::middleware('admin')->group(function () {
+        Route::get('/archive', [ArchiveController::class, 'index'])->name('archive.index');
+        Route::put('/archive/{type}/{id}/restore', [ArchiveController::class, 'restore'])->name('archive.restore');
+        Route::delete('/archive/{type}/{id}', [ArchiveController::class, 'forceDelete'])->name('archive.force-delete');
+
+        // Kartu tarif menentukan harga yang sampai ke klien, jadi hanya admin
+        // yang boleh mengubahnya; stafnya tetap bisa memakainya untuk menawar.
+        Route::get('/rates', [ServiceRateController::class, 'index'])->name('rates.index');
+        Route::get('/rates/create', [ServiceRateController::class, 'create'])->name('rates.create');
+        Route::post('/rates', [ServiceRateController::class, 'store'])->name('rates.store');
+        Route::get('/rates/{rate}/edit', [ServiceRateController::class, 'edit'])->name('rates.edit');
+        Route::put('/rates/{rate}', [ServiceRateController::class, 'update'])->name('rates.update');
+        Route::delete('/rates/{rate}', [ServiceRateController::class, 'destroy'])->name('rates.destroy');
+
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
         Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
         Route::post('/users', [UserController::class, 'store'])->name('users.store');
@@ -150,13 +238,36 @@ Route::prefix('portal')->name('portal.')->group(function () {
     Route::middleware('guest:client')->group(function () {
         Route::get('/login', [PortalAuthController::class, 'showLogin'])->name('login');
         Route::post('/login', [PortalAuthController::class, 'login'])->middleware('throttle:6,1');
+
+        Route::get('/forgot-password', fn () => app(PasswordResetController::class)->request('client'))->name('password.request');
+        Route::post('/forgot-password', fn (Request $request) => app(PasswordResetController::class)->email($request, 'client'))
+            ->middleware('throttle:6,1')->name('password.email');
+        Route::get('/reset-password/{token}', fn (string $token, Request $request) => app(PasswordResetController::class)->reset('client', $token, $request))
+            ->name('password.reset');
+        Route::post('/reset-password', fn (Request $request) => app(PasswordResetController::class)->update($request, 'client'))
+            ->middleware('throttle:6,1')->name('password.update');
     });
 
     Route::middleware('auth:client')->group(function () {
         Route::get('/', [PortalProjectController::class, 'index'])->name('dashboard');
         Route::post('/logout', [PortalAuthController::class, 'logout'])->name('logout');
         Route::get('/projects/{project}', [PortalProjectController::class, 'show'])->name('projects.show');
+        Route::get('/projects/{project}/quotations/{quotation}/print', [PortalDocumentController::class, 'quotation'])->name('quotations.print');
+        Route::get('/projects/{project}/invoices/{invoice}/print', [PortalDocumentController::class, 'invoice'])->name('invoices.print');
+        Route::get('/projects/{project}/deliverables/{deliverable}/download', [PortalDeliverableController::class, 'download'])->name('deliverables.download');
         Route::put('/projects/{project}/deliverables/{deliverable}/approve', [PortalDeliverableController::class, 'approve'])->name('deliverables.approve');
         Route::put('/projects/{project}/deliverables/{deliverable}/revision', [PortalDeliverableController::class, 'requestRevision'])->name('deliverables.revision');
+
+        // Portal terbuka untuk pihak luar, jadi kedua rute yang menerima
+        // kiriman dibatasi lajunya seperti rute portal lain.
+        Route::post('/projects/{project}/messages', [PortalMessageController::class, 'store'])
+            ->middleware('throttle:20,1')->name('messages.store');
+        Route::post('/projects/{project}/attachments', [PortalAttachmentController::class, 'store'])
+            ->middleware('throttle:20,1')->name('attachments.store');
+        Route::get('/projects/{project}/attachments/{attachment}/download', [PortalAttachmentController::class, 'download'])
+            ->name('attachments.download');
+
+        Route::put('/projects/{project}/quotations/{quotation}/accept', [PortalQuotationController::class, 'accept'])
+            ->middleware('throttle:20,1')->name('quotations.accept');
     });
 });

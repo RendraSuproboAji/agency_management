@@ -7,16 +7,16 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable([
-    'project_id', 'title', 'type', 'version', 'file_path', 'external_url',
+    'project_id', 'scene_id', 'title', 'type', 'version', 'file_path', 'external_url',
     'status', 'review_note', 'submitted_at', 'approved_at',
 ])]
 class Deliverable extends Model
 {
     /** @use HasFactory<DeliverableFactory> */
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     public const TYPES = ['splat', 'mesh', 'panorama', 'video', 'floorplan', 'other'];
 
@@ -35,13 +35,25 @@ class Deliverable extends Model
         return $this->belongsTo(Project::class);
     }
 
-    /** Tautan eksternal (mis. GalleryVT) diutamakan; kalau tidak ada pakai berkas terunggah. */
+    public function scene(): BelongsTo
+    {
+        return $this->belongsTo(ProjectScene::class, 'scene_id');
+    }
+
+    /**
+     * Tautan tur publik, bila ada.
+     *
+     * Dulu metode ini juga mengembalikan URL berkas di disk publik. Berkasnya
+     * kini privat dan hanya dilayani lewat rute unduh ber-autentikasi, jadi
+     * kedua hal itu sengaja dipisah: yang ini publik, yang itu tidak.
+     */
     public function url(): ?string
     {
-        if ($this->external_url) {
-            return $this->external_url;
-        }
+        return $this->external_url ?: null;
+    }
 
-        return $this->file_path ? Storage::disk('public')->url($this->file_path) : null;
+    public function hasFile(): bool
+    {
+        return filled($this->file_path);
     }
 }

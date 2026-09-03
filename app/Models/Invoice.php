@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
 #[Fillable([
     'project_id', 'quotation_id', 'number', 'issued_at', 'due_at',
@@ -17,7 +19,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Invoice extends Model
 {
     /** @use HasFactory<InvoiceFactory> */
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     public const STATUSES = ['draft', 'sent', 'partial', 'paid', 'void'];
 
@@ -28,6 +30,14 @@ class Invoice extends Model
             'due_at' => 'date',
             'amount' => 'decimal:2',
         ];
+    }
+
+    /** Dicari lewat nomor dokumennya; itu yang orang ingat dan ketik. */
+    public function scopeSearch(Builder $query, ?string $term): Builder
+    {
+        $term = trim((string) $term);
+
+        return $term === '' ? $query : $query->where('number', 'like', "%{$term}%");
     }
 
     public function project(): BelongsTo
@@ -47,7 +57,13 @@ class Invoice extends Model
 
     public function paidAmount(): float
     {
-        return round((float) $this->payments()->sum('amount'), 2);
+        // Pakai relasi yang sudah dimuat bila ada; kalau selalu mengueri ulang,
+        // eager loading di daftar tagihan jadi sia-sia dan berubah jadi N+1.
+        $paid = $this->relationLoaded('payments')
+            ? $this->payments->sum(fn (Payment $payment) => (float) $payment->amount)
+            : (float) $this->payments()->sum('amount');
+
+        return round($paid, 2);
     }
 
     public function outstanding(): float
@@ -80,5 +96,34 @@ class Invoice extends Model
     public function scopeUnsettled(Builder $query): Builder
     {
         return $query->whereIn('status', ['sent', 'partial']);
+    }
+
+    /**
+     * Lewat jatuh tempo sengaja dihitung, bukan disimpan sebagai status.
+     *
+     * Sebuah invoice bisa sekaligus `partial` dan lewat tempo; menjadikannya
+     * status tersimpan akan menghapus informasi pembayaran sebagiannya, dan
+     * menuntut perintah terjadwal hanya untuk membalik status — yang berarti
+     * datanya bisa basi kalau perintah itu tidak jalan.
+     */
+    public function scopeOverdue(Builder $query): Builder
+    {
+        return $query->unsettled()
+            ->whereNotNull('due_at')
+            ->whereDate('due_at', '<', Carbon::today());
+    }
+
+    public function isOverdue(): bool
+    {
+        return $this->due_at
+            && $this->due_at->isBefore(Carbon::today())
+            && $this->outstanding() > 0
+            && ! in_array($this->status, ['draft', 'void', 'paid'], true);
+    }
+
+    /** Berapa hari lewat jatuh tempo; nol bila belum lewat. */
+    public function daysOverdue(): int
+    {
+        return $this->isOverdue() ? $this->due_at->diffInDays(Carbon::today()) : 0;
     }
 }

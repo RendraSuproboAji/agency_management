@@ -8,17 +8,20 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
 
 #[Fillable([
     'name', 'slug', 'contact_name', 'email', 'phone',
     'industry', 'address', 'notes', 'status', 'password', 'portal_enabled',
+    'raw_retention_days',
 ])]
 #[Hidden(['password', 'remember_token'])]
 class Client extends Authenticatable
 {
     /** @use HasFactory<ClientFactory> */
-    use HasFactory;
+    use HasFactory, Notifiable, SoftDeletes;
 
     public const STATUSES = ['lead', 'active', 'inactive'];
 

@@ -7,20 +7,25 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
-use Illuminate\View\View;
+use Illuminate\Validation\Rules\Password;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class UserController extends Controller
 {
-    public function index(): View
+    public function index(): Response
     {
-        return view('users.index', [
+        return Inertia::render('Users/Index', [
             'users' => User::withCount('ownedProjects')->orderBy('name')->paginate(20),
         ]);
     }
 
-    public function create(): View
+    public function create(): Response
     {
-        return view('users.create', ['user' => new User(['role' => 'staff'])]);
+        return Inertia::render('Users/Form', [
+            'user' => new User(['role' => 'staff']),
+            'roles' => User::ROLES,
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -29,7 +34,7 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:150'],
             'email' => ['required', 'email', 'max:150', 'unique:users,email'],
             'role' => ['required', 'in:'.implode(',', User::ROLES)],
-            'password' => ['required', 'string', 'min:8'],
+            'password' => ['required', 'string', Password::defaults()],
         ]);
 
         $data['password'] = Hash::make($data['password']);
@@ -38,9 +43,12 @@ class UserController extends Controller
         return redirect()->route('users.index')->with('status', 'Pengguna ditambahkan.');
     }
 
-    public function edit(User $user): View
+    public function edit(User $user): Response
     {
-        return view('users.edit', ['user' => $user]);
+        return Inertia::render('Users/Form', [
+            'user' => $user->only(['id', 'name', 'email', 'role']),
+            'roles' => User::ROLES,
+        ]);
     }
 
     public function update(Request $request, User $user): RedirectResponse
@@ -49,7 +57,7 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:150'],
             'email' => ['required', 'email', 'max:150', Rule::unique('users', 'email')->ignore($user->id)],
             'role' => ['required', 'in:'.implode(',', User::ROLES)],
-            'password' => ['nullable', 'string', 'min:8'],
+            'password' => ['nullable', 'string', Password::defaults()],
         ]);
 
         // Jangan sampai admin terakhir menurunkan dirinya sendiri jadi staff.
@@ -57,7 +65,10 @@ class UserController extends Controller
             return back()->withErrors(['role' => 'Minimal harus ada satu admin.'])->withInput();
         }
 
-        if (filled($data['password'])) {
+        // Aturan "nullable" hanya berlaku kalau kuncinya dikirim; permintaan
+        // yang menghilangkan field ini sama sekali dulu melempar
+        // "Undefined array key" alih-alih membiarkan kata sandi lama.
+        if (filled($data['password'] ?? null)) {
             $data['password'] = Hash::make($data['password']);
         } else {
             unset($data['password']);

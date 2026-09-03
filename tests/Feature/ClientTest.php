@@ -75,6 +75,6 @@ class ClientTest extends TestCase
             ->delete(route('clients.destroy', $client))
             ->assertRedirect(route('clients.index'));
 
-        $this->assertDatabaseMissing('clients', ['id' => $client->id]);
+        $this->assertSoftDeleted('clients', ['id' => $client->id]);
     }
 }

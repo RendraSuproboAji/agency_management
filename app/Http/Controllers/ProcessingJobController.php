@@ -33,6 +33,10 @@ class ProcessingJobController extends Controller
     {
         $this->authorizeJob($request, $project, $job);
 
+        // Menjalankan ulang job yang sudah selesai akan menghapus finished_at
+        // dan membuat durasinya hilang.
+        abort_unless(in_array($job->status, ['queued', 'failed'], true), 403);
+
         $job->update([
             'status' => 'running',
             'started_at' => now(),
@@ -47,6 +51,10 @@ class ProcessingJobController extends Controller
     public function finish(Request $request, Project $project, ProcessingJob $job): RedirectResponse
     {
         $this->authorizeJob($request, $project, $job);
+
+        // Job yang belum berjalan tidak punya started_at; menandainya selesai
+        // membuat durasinya dilaporkan 0 menit.
+        abort_unless($job->status === 'running', 403);
 
         $data = $request->validate([
             'status' => ['required', 'in:done,failed'],
@@ -72,7 +80,11 @@ class ProcessingJobController extends Controller
     {
         $this->authorizeJob($request, $project, $job);
 
-        $job->delete();
+        // Kolom deleted_at pada sesi dan job hanya dipakai untuk ikut
+        // terarsip bersama project. Tombol di halaman ini menjanjikan
+        // "hapus", dan halaman Arsip tidak menampilkan keduanya — jadi
+        // hapus benar-benar permanen alih-alih meninggalkan baris tersembunyi.
+        $job->forceDelete();
 
         return back()->with('status', 'Job dihapus.');
     }

@@ -7,8 +7,10 @@ use App\Models\Deliverable;
 use App\Models\Invoice;
 use App\Models\Note;
 use App\Models\Project;
+use App\Models\ProjectScene;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia;
 use Tests\TestCase;
 
 class PortalProjectTest extends TestCase
@@ -23,8 +25,10 @@ class PortalProjectTest extends TestCase
 
         $this->actingAs($client, 'client')->get(route('portal.dashboard'))
             ->assertOk()
-            ->assertSee('Tur Showroom Saya')
-            ->assertDontSee('Tur Milik Klien Lain');
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Portal/Dashboard')
+                ->has('projects', 1)
+                ->where('projects.0.title', 'Tur Showroom Saya'));
 
         $this->actingAs($client, 'client')->get(route('portal.projects.show', $mine))->assertOk();
         $this->actingAs($client, 'client')->get(route('portal.projects.show', $theirs))->assertNotFound();
@@ -41,13 +45,18 @@ class PortalProjectTest extends TestCase
             'status' => 'draft',
         ]);
 
-        $response = $this->actingAs($client, 'client')->get(route('portal.projects.show', $project));
-
-        $response->assertOk()
+        $this->actingAs($client, 'client')
+            ->get(route('portal.projects.show', $project))
+            ->assertOk()
+            // Bukan sekadar tidak tampil: datanya memang tidak pernah dikirim.
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Portal/Project')
+                ->missing('project.notes')
+                ->missing('project.activities')
+                ->missing('project.attachments')
+                ->has('project.documents', 0))
             ->assertDontSee('Margin proyek ini tipis.')
-            ->assertDontSee('Catatan internal')
-            ->assertDontSee('Riwayat aktivitas')
-            ->assertDontSee('INV/2026/0009');
+            ->assertDontSee('INV\\/2026\\/0009');
     }
 
     public function test_a_client_can_approve_a_submitted_deliverable(): void
@@ -123,10 +132,25 @@ class PortalProjectTest extends TestCase
                 'name' => $client->name,
                 'status' => 'active',
                 'portal_enabled' => '1',
-                'password' => 'kata-sandi-portal',
+                'password' => 'kata-sandi-p0rtal',
             ])->assertRedirect();
 
         $client->refresh();
         $this->assertTrue($client->canUsePortal());
+    }
+
+    public function test_the_portal_labels_each_deliverable_with_its_scene(): void
+    {
+        $client = Client::factory()->withPortal()->create();
+        $project = Project::factory()->create(['client_id' => $client->id]);
+        $scene = ProjectScene::factory()->create(['project_id' => $project->id, 'name' => 'Lobi']);
+
+        Deliverable::factory()->create(['project_id' => $project->id, 'scene_id' => $scene->id]);
+        Deliverable::factory()->create(['project_id' => $project->id, 'scene_id' => null]);
+
+        $this->actingAs($client, 'client')->get(route('portal.projects.show', $project))
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->has('project.deliverables', 2)
+                ->where('project.deliverables', fn ($items) => collect($items)->pluck('scene')->sort()->values()->all() === [null, 'Lobi']));
     }
 }

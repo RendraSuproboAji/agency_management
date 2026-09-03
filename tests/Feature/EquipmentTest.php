@@ -129,6 +129,24 @@ class EquipmentTest extends TestCase
         ])->assertRedirect();
     }
 
+    public function test_archived_equipment_cannot_be_booked(): void
+    {
+        $owner = User::factory()->create();
+        $project = Project::factory()->create(['owner_id' => $owner->id]);
+        $drone = Equipment::factory()->create();
+        $drone->delete();
+
+        $this->actingAs($owner)
+            ->from(route('sessions.create', $project))
+            ->post(route('sessions.store', $project), [
+                'scheduled_at' => '2026-09-10 09:00:00',
+                'status' => 'scheduled',
+                'equipment' => [$drone->id],
+            ])->assertSessionHasErrors('equipment.0');
+
+        $this->assertSame(0, $project->captureSessions()->count());
+    }
+
     public function test_a_session_does_not_clash_with_itself_when_edited(): void
     {
         $owner = User::factory()->create();

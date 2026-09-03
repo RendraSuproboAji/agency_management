@@ -8,12 +8,13 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable(['name', 'code', 'category', 'serial_number', 'status', 'notes'])]
 class Equipment extends Model
 {
     /** @use HasFactory<EquipmentFactory> */
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     public const CATEGORIES = ['camera', 'drone', 'lidar', 'support', 'other'];
 

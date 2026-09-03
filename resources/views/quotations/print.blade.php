@@ -8,23 +8,27 @@
     @if ($quotation->valid_until) · Berlaku sampai {{ $quotation->valid_until->format('d F Y') }} @endif
 </p>
 
+{{-- Penerima diambil dari satu sumber: penawaran bisa ditujukan ke klien
+     yang sudah ada maupun ke calon klien yang baru mengirim permintaan. --}}
+@php($to = $quotation->recipient())
+
 <div class="parties">
     <div>
         <h3>Kepada</h3>
         <p>
-            <strong>{{ $project->client->name }}</strong><br>
-            @if ($project->client->contact_name) u.p. {{ $project->client->contact_name }}<br> @endif
-            @if ($project->client->address) {{ $project->client->address }}<br> @endif
-            {{ $project->client->email }}
+            <strong>{{ $to['name'] }}</strong><br>
+            @if ($to['contact_name']) u.p. {{ $to['contact_name'] }}<br> @endif
+            @if ($to['address']) {{ $to['address'] }}<br> @endif
+            {{ $to['email'] }}
         </p>
     </div>
     <div>
         <h3>Perihal</h3>
         <p>
-            <strong>{{ $project->title }}</strong><br>
-            {{ str_replace('_', ' ', $project->service_type) }}<br>
-            @if ($project->site_location) {{ $project->site_location }} @endif
-            @if ($project->area_sqm) · {{ $project->area_sqm }} m² @endif
+            <strong>{{ $to['subject'] }}</strong><br>
+            {{ $to['service_type'] }}<br>
+            @if ($to['site_location']) {{ $to['site_location'] }} @endif
+            @if ($to['area_sqm']) · {{ $to['area_sqm'] }} m² @endif
         </p>
     </div>
 </div>
@@ -54,6 +58,16 @@
     <div class="panel-note">
         <h3>Catatan</h3>
         <p class="notes">{{ $quotation->notes }}</p>
+    </div>
+@endif
+
+@if ($quotation->accepted_at)
+    {{-- Bukti persetujuan ikut tercetak: dokumen yang diarsipkan harus bisa
+         menjawab siapa menyetujui dan kapan tanpa membuka aplikasinya. --}}
+    <div class="panel-note">
+        <h3>Persetujuan</h3>
+        <p>Disetujui oleh {{ $quotation->accepted_by }} pada
+            {{ $quotation->accepted_at->format('d F Y H:i') }}.</p>
     </div>
 @endif
 

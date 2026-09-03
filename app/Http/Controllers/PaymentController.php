@@ -8,24 +8,37 @@ use App\Models\Project;
 use App\Support\ActivityLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class PaymentController extends Controller
 {
     /** Rekap pembayaran & piutang lintas project. */
-    public function index(Request $request): View
+    public function index(Request $request): Response
     {
         $invoices = Invoice::query()
-            ->with('project.client')
+            ->with('project.client', 'payments')
+            ->search($request->query('q'))
             ->when($request->query('status'), fn ($query, $status) => $query->where('status', $status))
             ->when($request->boolean('unsettled'), fn ($query) => $query->unsettled())
             ->orderByRaw('due_at is null, due_at asc')
             ->paginate(20)
             ->withQueryString();
 
-        return view('invoices.index', [
+        $invoices->through(fn (Invoice $invoice) => [
+            ...$invoice->only(['id', 'number', 'status', 'amount']),
+            'due_at' => $invoice->due_at?->format('d M Y'),
+            'days_overdue' => $invoice->daysOverdue(),
+            'outstanding' => $invoice->outstanding(),
+            'project_title' => $invoice->project->title,
+            'project_slug' => $invoice->project->slug,
+            'client_name' => $invoice->project->client->name,
+        ]);
+
+        return Inertia::render('Invoices/Index', [
             'invoices' => $invoices,
-            'filters' => $request->only(['status', 'unsettled']),
+            'filters' => $request->only(['q', 'status', 'unsettled']),
+            'statuses' => Invoice::STATUSES,
         ]);
     }
 
@@ -34,8 +47,12 @@ class PaymentController extends Controller
         $this->authorizePayment($request, $project, $invoice);
 
         $data = $request->validate([
-            'paid_at' => ['required', 'date'],
-            'amount' => ['required', 'numeric', 'min:0.01'],
+            // Pembayaran tidak boleh mendahului tanggal terbit invoice-nya.
+            'paid_at' => ['required', 'date', 'after_or_equal:'.$invoice->issued_at->toDateString()],
+            // Batas atas sisa tagihan: tanpa ini invoice bisa "lunas" oleh
+            // nominal yang lebih besar dari nilainya, dan kelebihannya hilang
+            // karena outstanding() menjepit di nol.
+            'amount' => ['required', 'numeric', 'min:0.01', 'max:'.$invoice->outstanding()],
             'method' => ['required', 'in:'.implode(',', Payment::METHODS)],
             'reference' => ['nullable', 'string', 'max:100'],
             'note' => ['nullable', 'string', 'max:255'],

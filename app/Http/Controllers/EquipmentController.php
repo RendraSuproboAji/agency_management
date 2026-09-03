@@ -6,11 +6,12 @@ use App\Models\Equipment;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
-use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class EquipmentController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request): Response
     {
         $equipment = Equipment::query()
             ->search($request->query('q'))
@@ -21,17 +22,20 @@ class EquipmentController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        return view('equipment.index', [
+        return Inertia::render('Equipment/Index', [
             'equipment' => $equipment,
             'filters' => $request->only(['q', 'category', 'status']),
+            'categories' => Equipment::CATEGORIES,
+            'statuses' => Equipment::STATUSES,
+            'isAdmin' => $request->user()->isAdmin(),
         ]);
     }
 
-    public function create(): View
+    public function create(): Response
     {
-        return view('equipment.create', [
+        return Inertia::render('Equipment/Form', [
             'item' => new Equipment(['category' => 'camera', 'status' => 'available']),
-        ]);
+        ] + $this->formOptions());
     }
 
     public function store(Request $request): RedirectResponse
@@ -41,9 +45,9 @@ class EquipmentController extends Controller
         return redirect()->route('equipment.index')->with('status', 'Peralatan ditambahkan.');
     }
 
-    public function edit(Equipment $equipment): View
+    public function edit(Equipment $equipment): Response
     {
-        return view('equipment.edit', ['item' => $equipment]);
+        return Inertia::render('Equipment/Form', ['item' => $equipment] + $this->formOptions());
     }
 
     public function update(Request $request, Equipment $equipment): RedirectResponse
@@ -60,6 +64,15 @@ class EquipmentController extends Controller
         $equipment->delete();
 
         return redirect()->route('equipment.index')->with('status', 'Peralatan dihapus.');
+    }
+
+    /** @return array<string, mixed> */
+    private function formOptions(): array
+    {
+        return [
+            'categories' => Equipment::CATEGORIES,
+            'statuses' => Equipment::STATUSES,
+        ];
     }
 
     /** @return array<string, mixed> */

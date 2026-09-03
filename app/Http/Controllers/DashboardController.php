@@ -9,11 +9,15 @@ use App\Models\Invoice;
 use App\Models\ProcessingJob;
 use App\Models\Project;
 use App\Models\ServiceRequest;
-use Illuminate\View\View;
+use App\Support\RawData;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    public function index(): View
+    public function index(): Response
     {
         $countsByStatus = Project::query()
             ->selectRaw('status, count(*) as total')
@@ -22,38 +26,121 @@ class DashboardController extends Controller
 
         $unsettled = Invoice::unsettled()->with('payments')->get();
 
-        return view('dashboard', [
-            'runningJobs' => ProcessingJob::running()->with('project.client')->orderBy('started_at')->get(),
+        return Inertia::render('Dashboard', [
+            'runningJobs' => ProcessingJob::running()->with('project.client')->whereHas('project')->orderBy('started_at')->get()
+                ->map(fn (ProcessingJob $job) => [
+                    'id' => $job->id,
+                    'kind' => str_replace('_', ' ', $job->kind),
+                    'machine' => $job->machine ?: 'mesin tidak dicatat',
+                    'project_slug' => $job->project->slug,
+                    'project_title' => $job->project->title,
+                ]),
             'receivable' => $unsettled->sum(fn (Invoice $invoice) => $invoice->outstanding()),
-            'dueInvoices' => Invoice::unsettled()
-                ->with('project.client')
-                ->whereNotNull('due_at')
-                ->orderBy('due_at')
-                ->limit(5)
-                ->get(),
+            // Lewat jatuh tempo dipisah dari yang akan datang: keduanya menuntut
+            // tindakan berbeda, dan digabung dalam satu daftar yang lewat tempo
+            // tenggelam di antara yang belum waktunya.
+            'overdueInvoices' => $this->invoiceRows(Invoice::overdue()->orderBy('due_at')),
+            'overdueCount' => Invoice::overdue()->count(),
+            'overdueTotal' => Invoice::overdue()->with('payments')->get()
+                ->sum(fn (Invoice $invoice) => $invoice->outstanding()),
+            'dueInvoices' => $this->invoiceRows(
+                Invoice::unsettled()
+                    ->whereNotNull('due_at')
+                    ->whereDate('due_at', '>=', now()->toDateString())
+                    ->orderBy('due_at'),
+            ),
             'statuses' => Project::STATUSES,
             'countsByStatus' => $countsByStatus,
             'clientCount' => Client::count(),
             'newRequestCount' => ServiceRequest::where('status', 'new')->count(),
-            'latestRequests' => ServiceRequest::where('status', 'new')->latest()->limit(5)->get(),
+            'latestRequests' => ServiceRequest::where('status', 'new')->latest()->limit(5)->get()
+                ->map(fn (ServiceRequest $item) => [
+                    'id' => $item->id,
+                    'name' => $item->name,
+                    'company' => $item->company,
+                    'service_type' => str_replace('_', ' ', $item->service_type),
+                ]),
             'activeProjectCount' => Project::whereNotIn('status', ['delivered', 'archived'])->count(),
             'upcomingDeadlines' => Project::with('client')
                 ->whereNotNull('deadline')
                 ->whereNotIn('status', ['delivered', 'archived'])
                 ->orderBy('deadline')
                 ->limit(5)
-                ->get(),
+                ->get()
+                ->map(fn (Project $project) => [
+                    'id' => $project->id,
+                    'slug' => $project->slug,
+                    'title' => $project->title,
+                    'client_name' => $project->client->name,
+                    'deadline' => $project->deadline->format('d M Y'),
+                ]),
             'upcomingSessions' => CaptureSession::with('project.client', 'crew')
+                ->whereHas('project')
                 ->where('status', 'scheduled')
                 ->where('scheduled_at', '>=', now()->startOfDay())
                 ->orderBy('scheduled_at')
                 ->limit(5)
-                ->get(),
+                ->get()
+                ->map(fn (CaptureSession $session) => [
+                    'id' => $session->id,
+                    'project_slug' => $session->project->slug,
+                    'project_title' => $session->project->title,
+                    'scheduled_at' => $session->scheduled_at->format('d M Y H:i'),
+                    'crew_name' => $session->crew?->name,
+                ]),
             'pendingDeliverables' => Deliverable::with('project.client')
                 ->where('status', 'submitted')
                 ->orderBy('submitted_at')
                 ->limit(5)
-                ->get(),
+                ->get()
+                ->map(fn (Deliverable $deliverable) => [
+                    'id' => $deliverable->id,
+                    'title' => $deliverable->title,
+                    'version' => $deliverable->version,
+                    'project_slug' => $deliverable->project->slug,
+                    'project_title' => $deliverable->project->title,
+                    'client_name' => $deliverable->project->client->name,
+                ]),
+            // Kebersihan penyimpanan terlihat harian tanpa perlu surat
+            // pengingat baru; rinciannya ada di halaman /storage.
+            'rawCleanup' => $this->rawCleanup(),
         ]);
+    }
+
+    /**
+     * @param  Builder<Invoice>  $query
+     * @return Collection<int, array<string, mixed>>
+     */
+    /** @return array{sessions: int, gb: float} */
+    private function rawCleanup(): array
+    {
+        $sessions = CaptureSession::query()
+            ->whereHas('project')
+            ->whereNotNull('raw_size_gb')
+            ->whereNull('raw_purged_at')
+            ->with('project.client', 'project.deliverables')
+            ->get()
+            ->filter(fn (CaptureSession $session) => RawData::status($session) === RawData::READY);
+
+        return [
+            'sessions' => $sessions->count(),
+            'gb' => round($sessions->sum(fn (CaptureSession $session) => (float) $session->raw_size_gb), 2),
+        ];
+    }
+
+    private function invoiceRows(mixed $query): Collection
+    {
+        return $query->with('project.client', 'payments')
+            ->limit(5)
+            ->get()
+            ->map(fn (Invoice $invoice) => [
+                'id' => $invoice->id,
+                'number' => $invoice->number,
+                'due_at' => $invoice->due_at->format('d M Y'),
+                'days_overdue' => $invoice->daysOverdue(),
+                'outstanding' => $invoice->outstanding(),
+                'project_slug' => $invoice->project->slug,
+                'client_name' => $invoice->project->client->name,
+            ]);
     }
 }

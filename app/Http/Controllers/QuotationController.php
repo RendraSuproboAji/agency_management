@@ -4,27 +4,34 @@ namespace App\Http\Controllers;
 
 use App\Models\Project;
 use App\Models\Quotation;
+use App\Models\ServiceRequest;
 use App\Support\ActivityLogger;
 use App\Support\DocumentNumber;
+use App\Support\QuotationEstimator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class QuotationController extends Controller
 {
-    public function create(Request $request, Project $project): View
+    public function create(Request $request, Project $project): Response
     {
         abort_unless($project->isManageableBy($request->user()), 403);
 
-        return view('quotations.create', [
-            'project' => $project,
-            'quotation' => new Quotation([
+        return Inertia::render('Quotations/Form', [
+            'project' => $project->only(['slug', 'title']),
+            'quotation' => [
                 'issued_at' => now()->toDateString(),
                 'valid_until' => now()->addDays(14)->toDateString(),
                 'status' => 'draft',
                 'tax_percent' => 11,
-            ]),
+                'items' => [],
+            ],
+            'statuses' => Quotation::STATUSES,
+            'multipliers' => QuotationEstimator::MULTIPLIERS,
         ]);
     }
 
@@ -34,10 +41,8 @@ class QuotationController extends Controller
 
         $data = $this->validated($request);
 
-        $quotation = DB::transaction(function () use ($project, $data) {
-            $quotation = $project->quotations()->create($data + [
-                'number' => DocumentNumber::next(Quotation::class, 'QUO'),
-            ]);
+        $quotation = DocumentNumber::assign(Quotation::class, 'QUO', function (string $number) use ($project, $data) {
+            $quotation = $project->quotations()->create($data + ['number' => $number]);
 
             $this->syncItems($quotation, $data['items']);
 
@@ -48,13 +53,22 @@ class QuotationController extends Controller
             ->with('status', 'Penawaran '.$quotation->number.' dibuat.');
     }
 
-    public function show(Project $project, Quotation $quotation): View
+    public function show(Request $request, Project $project, Quotation $quotation): Response
     {
         abort_unless($quotation->project_id === $project->id, 404);
 
-        return view('quotations.show', [
-            'project' => $project,
-            'quotation' => $quotation->load('items', 'invoices'),
+        $quotation->load('items', 'invoices');
+
+        // Satu payload untuk kedua konteks. Dulu halaman ini menyusunnya
+        // sendiri, dan diam-diam ketinggalan: penanda kedaluwarsa yang
+        // ditambahkan untuk penawaran calon klien tidak pernah sampai ke sini.
+        return Inertia::render('Quotations/Show', [
+            'project' => $project->only(['slug', 'title']),
+            'quotation' => [
+                ...$this->quotationPayload($quotation),
+                'invoices' => $quotation->invoices->map(fn ($invoice) => $invoice->only(['id', 'number', 'status', 'amount'])),
+            ],
+            'canManage' => $project->isManageableBy($request->user()),
         ]);
     }
 
@@ -69,13 +83,22 @@ class QuotationController extends Controller
         ]);
     }
 
-    public function edit(Request $request, Project $project, Quotation $quotation): View
+    public function edit(Request $request, Project $project, Quotation $quotation): Response
     {
         $this->authorizeQuotation($request, $project, $quotation);
 
-        return view('quotations.edit', [
-            'project' => $project,
-            'quotation' => $quotation->load('items'),
+        $quotation->load('items');
+
+        return Inertia::render('Quotations/Form', [
+            'project' => $project->only(['slug', 'title']),
+            'quotation' => [
+                ...$quotation->only(['id', 'number', 'status', 'notes', 'tax_percent']),
+                'issued_at' => $quotation->issued_at->format('Y-m-d'),
+                'valid_until' => $quotation->valid_until?->format('Y-m-d'),
+                'items' => $quotation->items->map(fn ($item) => $item->only(['description', 'qty', 'unit', 'unit_price'])),
+            ],
+            'statuses' => Quotation::STATUSES,
+            'multipliers' => QuotationEstimator::MULTIPLIERS,
         ]);
     }
 
@@ -99,7 +122,17 @@ class QuotationController extends Controller
     {
         $this->authorizeQuotation($request, $project, $quotation);
 
-        $quotation->update(['status' => 'accepted']);
+        if ($rejection = $this->rejectIfExpired($quotation)) {
+            return $rejection;
+        }
+
+        // Dicatat juga di jalur staf, bukan cuma di portal: pertanyaan "siapa
+        // menyetujui, kapan" harus punya satu jawaban dari mana pun asalnya.
+        $quotation->update([
+            'status' => 'accepted',
+            'accepted_at' => now(),
+            'accepted_by' => $request->user()->name,
+        ]);
 
         ActivityLogger::log($quotation, 'quotation.accepted', 'Penawaran '.$quotation->number.' disetujui klien.');
 
@@ -128,6 +161,188 @@ class QuotationController extends Controller
         foreach ($items as $item) {
             $quotation->items()->create($item);
         }
+    }
+
+    // --- Penawaran untuk calon klien -------------------------------------
+    //
+    // Penawaran boleh ditujukan ke permintaan yang masuk lewat form publik,
+    // tanpa perlu membuat data klien dan project lebih dulu. Metode-metode
+    // berikut memakai ulang validasi, penomoran, dan penyusunan item yang
+    // sama dengan penawaran project.
+
+    public function createForRequest(ServiceRequest $serviceRequest): Response
+    {
+        return Inertia::render('Quotations/Form', [
+            'serviceRequest' => $this->requestSummary($serviceRequest),
+            'quotation' => [
+                'issued_at' => now()->toDateString(),
+                'valid_until' => now()->addDays(14)->toDateString(),
+                'tax_percent' => 11,
+                'status' => 'draft',
+                'items' => [],
+            ],
+            'statuses' => Quotation::STATUSES,
+            'multipliers' => QuotationEstimator::MULTIPLIERS,
+        ]);
+    }
+
+    public function storeForRequest(Request $request, ServiceRequest $serviceRequest): RedirectResponse
+    {
+        $data = $this->validated($request);
+
+        $quotation = DocumentNumber::assign(Quotation::class, 'QUO', function (string $number) use ($serviceRequest, $data) {
+            $quotation = $serviceRequest->quotations()->create($data + ['number' => $number]);
+
+            $this->syncItems($quotation, $data['items']);
+
+            return $quotation;
+        });
+
+        return redirect()->route('requests.show', $serviceRequest)
+            ->with('status', 'Penawaran '.$quotation->number.' dibuat untuk calon klien.');
+    }
+
+    public function showForRequest(ServiceRequest $serviceRequest, Quotation $quotation): Response
+    {
+        $this->authorizeProspectQuotation($serviceRequest, $quotation);
+
+        $quotation->load('items');
+
+        return Inertia::render('Quotations/Show', [
+            'serviceRequest' => $this->requestSummary($serviceRequest),
+            'quotation' => $this->quotationPayload($quotation),
+            'canManage' => true,
+        ]);
+    }
+
+    public function editForRequest(ServiceRequest $serviceRequest, Quotation $quotation): Response
+    {
+        $this->authorizeProspectQuotation($serviceRequest, $quotation);
+
+        $quotation->load('items');
+
+        return Inertia::render('Quotations/Form', [
+            'serviceRequest' => $this->requestSummary($serviceRequest),
+            'quotation' => [
+                ...$quotation->only(['id', 'number', 'status', 'notes', 'tax_percent']),
+                'issued_at' => $quotation->issued_at->format('Y-m-d'),
+                'valid_until' => $quotation->valid_until?->format('Y-m-d'),
+                'items' => $quotation->items->map(fn ($item) => $item->only(['description', 'qty', 'unit', 'unit_price'])),
+            ],
+            'statuses' => Quotation::STATUSES,
+            'multipliers' => QuotationEstimator::MULTIPLIERS,
+        ]);
+    }
+
+    public function updateForRequest(Request $request, ServiceRequest $serviceRequest, Quotation $quotation): RedirectResponse
+    {
+        $this->authorizeProspectQuotation($serviceRequest, $quotation);
+
+        $data = $this->validated($request);
+
+        DB::transaction(function () use ($quotation, $data) {
+            $quotation->update($data);
+            $quotation->items()->delete();
+            $this->syncItems($quotation, $data['items']);
+        });
+
+        return redirect()->route('requests.quotations.show', [$serviceRequest, $quotation])
+            ->with('status', 'Penawaran diperbarui.');
+    }
+
+    public function acceptForRequest(ServiceRequest $serviceRequest, Quotation $quotation): RedirectResponse
+    {
+        $this->authorizeProspectQuotation($serviceRequest, $quotation);
+
+        if ($rejection = $this->rejectIfExpired($quotation)) {
+            return $rejection;
+        }
+
+        $quotation->update([
+            'status' => 'accepted',
+            'accepted_at' => now(),
+            'accepted_by' => request()->user()->name,
+        ]);
+
+        ActivityLogger::log($quotation, 'quotation.accepted', 'Penawaran '.$quotation->number.' disetujui calon klien.');
+
+        // Sengaja tidak ikut mengonversi. Menyetujui dan menjadikan klien
+        // adalah dua keputusan berbeda — yang kedua menentukan nama klien,
+        // judul project, dan PIC-nya.
+        return back()->with('status', 'Penawaran ditandai disetujui. Konversi request ini untuk mulai mengerjakan dan menagih.');
+    }
+
+    /**
+     * Penawaran yang masa berlakunya habis tidak bisa disetujui begitu saja:
+     * harganya sudah tidak mengikat. Menerbitkan ulang tanggalnya adalah
+     * keputusan sadar, dan itulah jalan keluarnya.
+     */
+    private function rejectIfExpired(Quotation $quotation): ?RedirectResponse
+    {
+        if (! $quotation->isExpired()) {
+            return null;
+        }
+
+        return back()->withErrors([
+            'quotation' => 'Masa berlaku penawaran ini sudah habis pada '
+                .$quotation->valid_until->format('d M Y')
+                .'. Perbarui tanggal berlakunya dulu bila harganya masih sama.',
+        ]);
+    }
+
+    private function authorizeProspectQuotation(ServiceRequest $serviceRequest, Quotation $quotation): void
+    {
+        abort_unless($quotation->service_request_id === $serviceRequest->id, 404);
+    }
+
+    /** @return array<string, mixed> */
+    private function quotationPayload(Quotation $quotation): array
+    {
+        return [
+            ...$quotation->only(['id', 'number', 'status', 'notes', 'tax_percent']),
+            'is_expired' => $quotation->isExpired(),
+            'accepted_by' => $quotation->accepted_by,
+            'accepted_at' => $quotation->accepted_at?->format('d M Y H:i'),
+            'issued_at' => $quotation->issued_at->format('d M Y'),
+            'valid_until' => $quotation->valid_until?->format('d M Y'),
+            'subtotal' => $quotation->subtotal(),
+            'tax_amount' => $quotation->taxAmount(),
+            'total' => $quotation->total(),
+            'items' => $quotation->items->map(fn ($item) => [
+                ...$item->only(['id', 'description', 'qty', 'unit', 'unit_price']),
+                'line_total' => $item->lineTotal(),
+            ]),
+            'invoices' => [],
+        ];
+    }
+
+    public function printForRequest(ServiceRequest $serviceRequest, Quotation $quotation): View
+    {
+        abort_unless($quotation->service_request_id === $serviceRequest->id, 404);
+
+        return view('quotations.print', [
+            'quotation' => $quotation->load('items', 'serviceRequest'),
+            'backUrl' => route('requests.show', $serviceRequest),
+        ]);
+    }
+
+    public function destroyForRequest(ServiceRequest $serviceRequest, Quotation $quotation): RedirectResponse
+    {
+        abort_unless($quotation->service_request_id === $serviceRequest->id, 404);
+
+        $quotation->delete();
+
+        return back()->with('status', 'Penawaran diarsipkan.');
+    }
+
+    /** @return array<string, mixed> */
+    private function requestSummary(ServiceRequest $serviceRequest): array
+    {
+        return [
+            'id' => $serviceRequest->id,
+            'name' => $serviceRequest->company ?: $serviceRequest->name,
+            'contact_name' => $serviceRequest->name,
+        ];
     }
 
     /** @return array<string, mixed> */
