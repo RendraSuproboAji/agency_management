@@ -26,6 +26,7 @@ use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectSceneController;
 use App\Http\Controllers\PublicRequestController;
 use App\Http\Controllers\QuotationController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ServiceRateController;
 use App\Http\Controllers\ServiceRequestController;
 use App\Http\Controllers\StorageController;
@@ -97,6 +98,11 @@ Route::middleware('auth:web')->group(function () {
     Route::delete('/requests/{serviceRequest}', [ServiceRequestController::class, 'destroy'])
         ->middleware('admin')
         ->name('requests.destroy');
+
+    // Laporan periode dan ekspornya.
+    Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+    Route::get('/reports/invoices.csv', [ReportController::class, 'invoices'])->name('reports.invoices');
+    Route::get('/reports/payments.csv', [ReportController::class, 'payments'])->name('reports.payments');
 
     // Daur hidup data mentah: satu-satunya layar yang menotal terabyte yang
     // sedang ditahan dan menandai sesi tanpa salinan.
