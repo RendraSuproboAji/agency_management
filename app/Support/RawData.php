@@ -61,7 +61,10 @@ class RawData
             return false;
         }
 
-        $deliverables = $project->deliverables()->get();
+        // Pengakses relasi, bukan ->deliverables()->get(): yang kedua selalu
+        // menembak kueri baru, jadi eager loading pemanggilnya tidak pernah
+        // terpakai dan halaman penyimpanan menanyakan sekali per sesi.
+        $deliverables = $project->deliverables;
 
         if ($deliverables->isEmpty()) {
             return false;

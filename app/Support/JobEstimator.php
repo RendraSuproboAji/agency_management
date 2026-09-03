@@ -20,6 +20,34 @@ class JobEstimator
     private const REMAINING = ['queued', 'running'];
 
     /**
+     * Median per jenis job, diingat selama satu permintaan.
+     *
+     * Halaman project memanggilnya sekali per job antre, dan tiap panggilan
+     * menanyakan hal yang sama persis. Perhitungannya murni baca dan tidak
+     * berubah di tengah permintaan, jadi mengingatnya aman.
+     *
+     * Disimpan di container, bukan di properti statis: container dibangun
+     * ulang tiap permintaan dan tiap tes, jadi ingatannya tidak pernah bocor
+     * ke permintaan berikutnya. Properti statis sempat dipakai di sini dan
+     * langsung membocorkan hasil antar tes.
+     */
+    private const CACHE_KEY = 'job-estimator.minutes-per-gb.';
+
+    /**
+     * Lupakan yang sudah diingat.
+     *
+     * Container hidup selama satu permintaan HTTP, tetapi sebuah perintah
+     * artisan yang berjalan lama memakai container yang sama dari awal sampai
+     * akhir — di situ perkiraan yang dihitung di menit pertama bisa basi.
+     */
+    public static function forget(): void
+    {
+        foreach (ProcessingJob::KINDS as $kind) {
+            app()->forgetInstance(self::CACHE_KEY.$kind);
+        }
+    }
+
+    /**
      * Median menit per GB untuk satu jenis job.
      *
      * Median, bukan rata-rata: satu job yang tertinggal semalaman karena mesin
@@ -27,6 +55,12 @@ class JobEstimator
      */
     public static function minutesPerGb(string $kind): ?Estimate
     {
+        $key = self::CACHE_KEY.$kind;
+
+        if (app()->bound($key)) {
+            return app($key)['value'];
+        }
+
         $rates = ProcessingJob::query()
             ->where('kind', $kind)
             ->whereNotNull('started_at')
@@ -44,10 +78,10 @@ class JobEstimator
             ->values();
 
         if ($rates->count() < self::MINIMUM_SAMPLES) {
-            return null;
+            return self::remember($key, null);
         }
 
-        return new Estimate(self::median($rates), $rates->count());
+        return self::remember($key, new Estimate(self::median($rates), $rates->count()));
     }
 
     /** Perkiraan durasi satu job, dari besar data mentah sesi capture-nya. */
@@ -92,6 +126,15 @@ class JobEstimator
             $estimates->min(fn (Estimate $estimate) => $estimate->samples),
             (int) $estimates->sum(fn (Estimate $estimate) => $estimate->minutes),
         );
+    }
+
+    private static function remember(string $key, ?Estimate $estimate): ?Estimate
+    {
+        // Dibungkus larik supaya null pun tercatat sebagai jawaban, bukan
+        // sebagai "belum pernah dihitung".
+        app()->instance($key, ['value' => $estimate]);
+
+        return $estimate;
     }
 
     /** @param Collection<int, float> $values */

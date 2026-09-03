@@ -1,6 +1,6 @@
 import { Link, router } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
-import { Badge, ConfirmButton, PageHead, Panel, Table, Td } from '@/Components/ui';
+import { Badge, ConfirmButton, PageHead, Pagination, Panel, Table, Td } from '@/Components/ui';
 
 const LABELS = {
     tanpa_backup: 'tanpa backup',
@@ -40,28 +40,40 @@ function SessionRows({ rows, purgeable = false }) {
     ));
 }
 
-export default function Index({ totalGb, atRisk, ready, byClient, sessions }) {
+export default function Index({ totalGb, heldSessions, atRisk, atRiskCount, ready, readyCount, byClient, sessions }) {
     const head = ['Project', 'Sesi', 'Ukuran', 'Backup', 'Status', ''];
 
     return (
         <AppLayout title="Penyimpanan">
             <PageHead title="Penyimpanan"
-                      subtitle={`${terabytes(totalGb)} data mentah sedang ditahan dari ${sessions.length} sesi.`} />
+                      subtitle={`${terabytes(totalGb)} data mentah sedang ditahan dari ${heldSessions} sesi.`} />
 
-            {atRisk.length > 0 && (
-                <Panel title={`Tanpa backup — ${atRisk.length} sesi`}>
+            {atRiskCount > 0 && (
+                <Panel title={`Tanpa backup — ${atRiskCount} sesi`}>
                     <p className="mb-2 text-sm text-danger">
                         Data mentah ini tidak punya salinan yang tercatat. Selama begitu, ia tidak akan
                         pernah dinyatakan siap dibersihkan.
                     </p>
                     <Table head={head}><SessionRows rows={atRisk} /></Table>
+                    {atRiskCount > atRisk.length && (
+                        <p className="mt-2 text-xs text-muted">
+                            Menampilkan {atRisk.length} teratas dari {atRiskCount}.
+                        </p>
+                    )}
                 </Panel>
             )}
 
-            <Panel title={`Siap dibersihkan — ${ready.length} sesi`}>
-                {ready.length === 0
+            <Panel title={`Siap dibersihkan — ${readyCount} sesi`}>
+                {readyCount === 0
                     ? <p className="text-sm text-muted">Belum ada yang boleh dibersihkan.</p>
-                    : <Table head={head}><SessionRows rows={ready} purgeable /></Table>}
+                    : <>
+                        <Table head={head}><SessionRows rows={ready} purgeable /></Table>
+                        {readyCount > ready.length && (
+                            <p className="mt-2 text-xs text-muted">
+                                Menampilkan {ready.length} teratas dari {readyCount}.
+                            </p>
+                        )}
+                    </>}
             </Panel>
 
             <Panel title="Per klien">
@@ -78,8 +90,9 @@ export default function Index({ totalGb, atRisk, ready, byClient, sessions }) {
 
             <Panel title="Semua sesi">
                 <Table head={head} empty="Belum ada sesi dengan data mentah tercatat.">
-                    <SessionRows rows={sessions} />
+                    <SessionRows rows={sessions.data} />
                 </Table>
+                <Pagination links={sessions.links} />
             </Panel>
         </AppLayout>
     );

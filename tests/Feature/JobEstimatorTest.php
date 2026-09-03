@@ -5,8 +5,10 @@ namespace Tests\Feature;
 use App\Models\CaptureSession;
 use App\Models\ProcessingJob;
 use App\Models\Project;
+use App\Models\User;
 use App\Support\JobEstimator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
@@ -135,6 +137,59 @@ class JobEstimatorTest extends TestCase
         // Dua job tersisa, masing-masing 100 GB × 2 menit; yang sudah selesai
         // tidak ikut dihitung lagi.
         $this->assertSame(400, JobEstimator::forProject($project)->minutes);
+    }
+
+    public function test_the_project_page_does_not_query_per_job(): void
+    {
+        $queriesFor = function (int $queued): int {
+            ProcessingJob::query()->forceDelete();
+            CaptureSession::query()->forceDelete();
+            Project::query()->forceDelete();
+
+            $project = Project::factory()->create(['owner_id' => User::factory()->create()->id]);
+
+            foreach ([1, 2, 3] as $ignored) {
+                $this->finishedJob($project, 100, 200);
+            }
+
+            for ($i = 0; $i < $queued; $i++) {
+                $session = CaptureSession::factory()->create([
+                    'project_id' => $project->id,
+                    'raw_size_gb' => 100,
+                ]);
+                ProcessingJob::factory()->create([
+                    'project_id' => $project->id,
+                    'capture_session_id' => $session->id,
+                    'kind' => 'splat_training',
+                    'status' => 'queued',
+                    'started_at' => null,
+                    'finished_at' => null,
+                ]);
+            }
+
+            // Container hidup melewati beberapa permintaan di dalam satu tes,
+            // padahal di produksi tiap permintaan dapat yang baru. Tanpa ini
+            // pengukuran keduanya tidak setara.
+            JobEstimator::forget();
+
+            $queries = 0;
+            DB::listen(function () use (&$queries) {
+                $queries++;
+            });
+
+            $this->actingAs($project->owner)->get(route('projects.show', $project))->assertOk();
+
+            return $queries;
+        };
+
+        $few = $queriesFor(2);
+        $many = $queriesFor(12);
+
+        $this->assertSame(
+            $few,
+            $many,
+            "Jumlah kueri tumbuh mengikuti jumlah job ({$few} → {$many}): perkiraan dihitung ulang per baris.",
+        );
     }
 
     public function test_a_project_without_history_has_no_estimate(): void
