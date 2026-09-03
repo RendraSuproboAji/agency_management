@@ -59,19 +59,13 @@ class QuotationController extends Controller
 
         $quotation->load('items', 'invoices');
 
+        // Satu payload untuk kedua konteks. Dulu halaman ini menyusunnya
+        // sendiri, dan diam-diam ketinggalan: penanda kedaluwarsa yang
+        // ditambahkan untuk penawaran calon klien tidak pernah sampai ke sini.
         return Inertia::render('Quotations/Show', [
             'project' => $project->only(['slug', 'title']),
             'quotation' => [
-                ...$quotation->only(['id', 'number', 'status', 'notes', 'tax_percent']),
-                'issued_at' => $quotation->issued_at->format('d M Y'),
-                'valid_until' => $quotation->valid_until?->format('d M Y'),
-                'subtotal' => $quotation->subtotal(),
-                'tax_amount' => $quotation->taxAmount(),
-                'total' => $quotation->total(),
-                'items' => $quotation->items->map(fn ($item) => [
-                    ...$item->only(['id', 'description', 'qty', 'unit', 'unit_price']),
-                    'line_total' => $item->lineTotal(),
-                ]),
+                ...$this->quotationPayload($quotation),
                 'invoices' => $quotation->invoices->map(fn ($invoice) => $invoice->only(['id', 'number', 'status', 'amount'])),
             ],
             'canManage' => $project->isManageableBy($request->user()),
@@ -132,7 +126,13 @@ class QuotationController extends Controller
             return $rejection;
         }
 
-        $quotation->update(['status' => 'accepted']);
+        // Dicatat juga di jalur staf, bukan cuma di portal: pertanyaan "siapa
+        // menyetujui, kapan" harus punya satu jawaban dari mana pun asalnya.
+        $quotation->update([
+            'status' => 'accepted',
+            'accepted_at' => now(),
+            'accepted_by' => $request->user()->name,
+        ]);
 
         ActivityLogger::log($quotation, 'quotation.accepted', 'Penawaran '.$quotation->number.' disetujui klien.');
 
@@ -258,7 +258,11 @@ class QuotationController extends Controller
             return $rejection;
         }
 
-        $quotation->update(['status' => 'accepted']);
+        $quotation->update([
+            'status' => 'accepted',
+            'accepted_at' => now(),
+            'accepted_by' => request()->user()->name,
+        ]);
 
         ActivityLogger::log($quotation, 'quotation.accepted', 'Penawaran '.$quotation->number.' disetujui calon klien.');
 
@@ -297,6 +301,8 @@ class QuotationController extends Controller
         return [
             ...$quotation->only(['id', 'number', 'status', 'notes', 'tax_percent']),
             'is_expired' => $quotation->isExpired(),
+            'accepted_by' => $quotation->accepted_by,
+            'accepted_at' => $quotation->accepted_at?->format('d M Y H:i'),
             'issued_at' => $quotation->issued_at->format('d M Y'),
             'valid_until' => $quotation->valid_until?->format('d M Y'),
             'subtotal' => $quotation->subtotal(),

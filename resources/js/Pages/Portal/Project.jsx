@@ -1,7 +1,7 @@
 import { router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import PortalLayout from '@/Layouts/PortalLayout';
-import { Badge, Button, ButtonLink, DetailList, Money, PageHead, Panel, Table, Td, inputClass } from '@/Components/ui';
+import { Badge, Button, ButtonLink, ConfirmButton, DetailList, Money, PageHead, Panel, Table, Td, inputClass } from '@/Components/ui';
 
 function RevisionForm({ action }) {
     const { data, setData, put, processing, errors } = useForm({ review_note: '' });
@@ -194,7 +194,22 @@ export default function Project({ project, statuses }) {
                             </Td>
                             <Td>
                                 <Badge status={doc.status} />
+                                {doc.is_expired && <> <Badge status="kedaluwarsa" /></>}
                                 {' '}<a href={doc.print_url} className="text-accent">Cetak</a>
+                                {doc.kind === 'quotation' && doc.can_accept && (
+                                    <><br />
+                                        <ConfirmButton small variant="primary" confirmLabel="Ya, saya setuju"
+                                                       message="Setujui penawaran ini? Tim kami akan menindaklanjuti dan menerbitkan invoice."
+                                                       onConfirm={() => router.put(doc.accept_url)}>
+                                            Setujui penawaran
+                                        </ConfirmButton>
+                                    </>
+                                )}
+                                {doc.accepted_by && (
+                                    <><br /><small className="text-muted">
+                                        disetujui {doc.accepted_by} · {doc.accepted_at}
+                                    </small></>
+                                )}
                                 {doc.payments.length > 0 && (
                                     <ul className="mt-1 text-xs text-muted">
                                         {doc.payments.map((payment) => (

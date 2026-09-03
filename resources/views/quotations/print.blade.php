@@ -61,6 +61,16 @@
     </div>
 @endif
 
+@if ($quotation->accepted_at)
+    {{-- Bukti persetujuan ikut tercetak: dokumen yang diarsipkan harus bisa
+         menjawab siapa menyetujui dan kapan tanpa membuka aplikasinya. --}}
+    <div class="panel-note">
+        <h3>Persetujuan</h3>
+        <p>Disetujui oleh {{ $quotation->accepted_by }} pada
+            {{ $quotation->accepted_at->format('d F Y H:i') }}.</p>
+    </div>
+@endif
+
 @include('partials.bank-details')
 
 <div class="signature">

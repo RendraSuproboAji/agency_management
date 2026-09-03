@@ -7,6 +7,7 @@ use App\Models\Quotation;
 use App\Models\ServiceRequest;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -87,6 +88,45 @@ class QuotationExpiryTest extends TestCase
             ->assertSessionHasErrors('quotation');
 
         $this->assertSame('sent', $quotation->fresh()->status);
+    }
+
+    /**
+     * Halaman penawaran project sempat membangun payload-nya sendiri, terpisah
+     * dari yang dipakai penawaran calon klien — sehingga penanda kedaluwarsa
+     * tidak pernah sampai ke sana dan tombol "Tandai disetujui" tetap tampil
+     * untuk penawaran yang servernya sendiri akan tolak.
+     */
+    public function test_both_quotation_screens_carry_the_same_marks(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $project = Project::factory()->create(['owner_id' => $admin->id]);
+        $quotation = Quotation::factory()->create([
+            'project_id' => $project->id,
+            'status' => 'sent',
+            'valid_until' => now()->subDay()->toDateString(),
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('quotations.show', [$project, $quotation]))
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('quotation.is_expired', true)
+                ->has('quotation.accepted_by')
+                ->has('quotation.accepted_at'));
+
+        $serviceRequest = ServiceRequest::factory()->create();
+        $prospect = Quotation::factory()->create([
+            'project_id' => null,
+            'service_request_id' => $serviceRequest->id,
+            'status' => 'sent',
+            'valid_until' => now()->subDay()->toDateString(),
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('requests.quotations.show', [$serviceRequest, $prospect]))
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('quotation.is_expired', true));
     }
 
     public function test_reissuing_the_date_brings_a_quotation_back(): void

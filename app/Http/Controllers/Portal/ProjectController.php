@@ -87,6 +87,11 @@ class ProjectController extends Controller
                         'issued_at' => $quotation->issued_at->format('d M Y'),
                         'amount' => $quotation->total(),
                         'print_url' => route('portal.quotations.print', [$project, $quotation]),
+                        'accept_url' => route('portal.quotations.accept', [$project, $quotation]),
+                        'can_accept' => $quotation->status !== 'accepted' && ! $quotation->isExpired(),
+                        'is_expired' => $quotation->isExpired(),
+                        'accepted_by' => $quotation->accepted_by,
+                        'accepted_at' => $quotation->accepted_at?->format('d M Y'),
                         'payments' => [],
                     ])
                     ->concat($project->invoices->map(fn ($invoice) => [

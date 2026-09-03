@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['project_id', 'service_request_id', 'number', 'issued_at', 'valid_until', 'tax_percent', 'status', 'notes'])]
+#[Fillable(['project_id', 'service_request_id', 'number', 'issued_at', 'valid_until', 'tax_percent', 'status', 'accepted_at', 'accepted_by', 'notes'])]
 class Quotation extends Model
 {
     /** @use HasFactory<QuotationFactory> */
@@ -25,6 +25,7 @@ class Quotation extends Model
         return [
             'issued_at' => 'date',
             'valid_until' => 'date',
+            'accepted_at' => 'datetime',
             'tax_percent' => 'decimal:2',
         ];
     }

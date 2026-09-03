@@ -19,6 +19,7 @@ use App\Http\Controllers\Portal\DeliverableController as PortalDeliverableContro
 use App\Http\Controllers\Portal\DocumentController as PortalDocumentController;
 use App\Http\Controllers\Portal\MessageController as PortalMessageController;
 use App\Http\Controllers\Portal\ProjectController as PortalProjectController;
+use App\Http\Controllers\Portal\QuotationController as PortalQuotationController;
 use App\Http\Controllers\ProcessingJobController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
@@ -255,5 +256,8 @@ Route::prefix('portal')->name('portal.')->group(function () {
             ->middleware('throttle:20,1')->name('attachments.store');
         Route::get('/projects/{project}/attachments/{attachment}/download', [PortalAttachmentController::class, 'download'])
             ->name('attachments.download');
+
+        Route::put('/projects/{project}/quotations/{quotation}/accept', [PortalQuotationController::class, 'accept'])
+            ->middleware('throttle:20,1')->name('quotations.accept');
     });
 });

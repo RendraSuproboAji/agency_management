@@ -28,6 +28,11 @@ export default function Show({ project, serviceRequest, quotation, canManage }) 
                     {quotation.valid_until && ` · berlaku s.d. ${quotation.valid_until}`}{' '}
                     <Badge status={quotation.status} />{' '}
                     {quotation.is_expired && <Badge status="kedaluwarsa" />}
+                    {quotation.accepted_by && (
+                        <span className="block text-xs">
+                            Disetujui {quotation.accepted_by} · {quotation.accepted_at}
+                        </span>
+                    )}
                 </>}
             >
                 <a href={`${target.base}/print`} target="_blank" rel="noopener"
