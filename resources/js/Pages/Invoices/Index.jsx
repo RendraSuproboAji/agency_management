@@ -4,7 +4,7 @@ import AppLayout from '@/Layouts/AppLayout';
 import { Badge, Button, Money, PageHead, Pagination, Table, Td, inputClass } from '@/Components/ui';
 
 export default function Index({ invoices, filters, statuses }) {
-    const [form, setForm] = useState({ status: filters.status ?? '', unsettled: Boolean(filters.unsettled) });
+    const [form, setForm] = useState({ q: filters.q ?? '', status: filters.status ?? '', unsettled: Boolean(filters.unsettled) });
 
     return (
         <AppLayout title="Tagihan">
@@ -12,6 +12,8 @@ export default function Index({ invoices, filters, statuses }) {
 
             <form onSubmit={(e) => { e.preventDefault(); router.get('/invoices', form, { preserveState: true }); }}
                   className="mb-3 flex flex-wrap items-center gap-2">
+                <input type="search" placeholder="Nomor invoice" className={`${inputClass} sm:w-44`}
+                       value={form.q} onChange={(e) => setForm({ ...form, q: e.target.value })} />
                 <select className={`${inputClass} sm:w-40`} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
                     <option value="">Semua status</option>
                     {statuses.map((s) => <option key={s} value={s}>{s}</option>)}

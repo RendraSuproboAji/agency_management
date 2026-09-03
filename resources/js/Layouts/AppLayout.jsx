@@ -21,6 +21,15 @@ const ADMIN_NAV = [
     { label: 'Arsip', route: '/archive' },
 ];
 
+function SearchBox({ className = '' }) {
+    return (
+        <form action="/search" method="get" className={`items-center gap-1 ${className}`}>
+            <input type="search" name="q" placeholder="Cari…" aria-label="Cari"
+                   className="w-full rounded-lg border border-line bg-raised px-2 py-1 text-sm text-ink md:w-44" />
+        </form>
+    );
+}
+
 export default function AppLayout({ title, children }) {
     const { auth, flash, newRequestCount, errors } = usePage().props;
     const { url } = usePage();
@@ -56,6 +65,11 @@ export default function AppLayout({ title, children }) {
                 </Link>
 
                 <div className="ml-auto flex items-center gap-3">
+                    {/* Di layar ponsel header sudah penuh — satu kotak lagi
+                        membuatnya meluber. Di sana pencariannya ikut ke panel
+                        menu, bukan hilang. */}
+                    <SearchBox className="hidden md:flex" />
+
                     <Link href="/profile" className="hidden text-sm text-muted hover:text-accent sm:inline">
                         {auth.user?.name} · {auth.user?.role}
                     </Link>
@@ -72,6 +86,8 @@ export default function AppLayout({ title, children }) {
 
             <div className="md:grid md:grid-cols-[210px_1fr]">
                 <nav className={`${open ? 'flex' : 'hidden'} flex-col gap-0.5 border-line bg-surface p-3 md:flex md:min-h-[calc(100vh-57px)] md:border-r`}>
+                    <SearchBox className="mb-2 md:hidden" />
+
                     {items.map((item) => {
                         const active = item.match ? item.match(url) : url.startsWith(item.route);
 

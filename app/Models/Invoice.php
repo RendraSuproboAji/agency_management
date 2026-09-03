@@ -32,6 +32,14 @@ class Invoice extends Model
         ];
     }
 
+    /** Dicari lewat nomor dokumennya; itu yang orang ingat dan ketik. */
+    public function scopeSearch(Builder $query, ?string $term): Builder
+    {
+        $term = trim((string) $term);
+
+        return $term === '' ? $query : $query->where('number', 'like', "%{$term}%");
+    }
+
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);

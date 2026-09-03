@@ -27,6 +27,7 @@ use App\Http\Controllers\ProjectSceneController;
 use App\Http\Controllers\PublicRequestController;
 use App\Http\Controllers\QuotationController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\ServiceRateController;
 use App\Http\Controllers\ServiceRequestController;
 use App\Http\Controllers\StorageController;
@@ -98,6 +99,9 @@ Route::middleware('auth:web')->group(function () {
     Route::delete('/requests/{serviceRequest}', [ServiceRequestController::class, 'destroy'])
         ->middleware('admin')
         ->name('requests.destroy');
+
+    // Satu kotak cari lintas jenis data; tiap daftar tetap punya penyaringnya.
+    Route::get('/search', [SearchController::class, 'index'])->name('search.index');
 
     // Laporan periode dan ekspornya.
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');

@@ -18,6 +18,7 @@ class PaymentController extends Controller
     {
         $invoices = Invoice::query()
             ->with('project.client', 'payments')
+            ->search($request->query('q'))
             ->when($request->query('status'), fn ($query, $status) => $query->where('status', $status))
             ->when($request->boolean('unsettled'), fn ($query) => $query->unsettled())
             ->orderByRaw('due_at is null, due_at asc')
@@ -36,7 +37,7 @@ class PaymentController extends Controller
 
         return Inertia::render('Invoices/Index', [
             'invoices' => $invoices,
-            'filters' => $request->only(['status', 'unsettled']),
+            'filters' => $request->only(['q', 'status', 'unsettled']),
             'statuses' => Invoice::STATUSES,
         ]);
     }
