@@ -42,6 +42,23 @@ class User extends Authenticatable
         return $this->hasMany(Project::class, 'owner_id');
     }
 
+    /**
+     * Sesi lain yang sudah menjadwalkan orang ini pada tanggal yang sama.
+     *
+     * Sejajar Equipment::conflictingSessionOn(), dan dengan alasan yang sama:
+     * satuan bentroknya tanggal kalender, bukan rentang jam, karena jam
+     * selesainya memang tidak kita simpan.
+     */
+    public function conflictingSessionOn(string $date, ?int $exceptSessionId = null): ?CaptureSession
+    {
+        return $this->captureSessions()
+            ->whereNot('capture_sessions.status', 'cancelled')
+            ->whereDate('scheduled_at', $date)
+            ->when($exceptSessionId, fn ($query) => $query->whereKeyNot($exceptSessionId))
+            ->with('project')
+            ->first();
+    }
+
     public function captureSessions(): HasMany
     {
         return $this->hasMany(CaptureSession::class, 'crew_id');

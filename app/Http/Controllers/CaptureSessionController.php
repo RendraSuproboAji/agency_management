@@ -265,7 +265,10 @@ class CaptureSessionController extends Controller
             'notes' => ['nullable', 'string'],
         ]);
 
-        $validator->after(fn ($validator) => $this->checkEquipmentClashes($validator, $request, $session));
+        $validator->after(function ($validator) use ($request, $session) {
+            $this->checkEquipmentClashes($validator, $request, $session);
+            $this->checkCrewClash($validator, $request, $session);
+        });
 
         $data = $validator->validate();
 
@@ -273,6 +276,42 @@ class CaptureSessionController extends Controller
         $data['equipment_note'] = $data['equipment_note'] ?? null;
 
         return $data;
+    }
+
+    /**
+     * Satu orang tidak bisa memotret di dua lokasi pada hari yang sama.
+     *
+     * Sebelumnya hanya peralatan yang dijaga, padahal kru bentrok justru yang
+     * paling mahal: alat bisa disewa dadakan, orang tidak.
+     */
+    private function checkCrewClash(
+        \Illuminate\Validation\Validator $validator,
+        Request $request,
+        ?CaptureSession $session,
+    ): void {
+        // Alasan yang sama seperti di checkEquipmentClashes: callback after
+        // tetap jalan walau aturan date sudah gagal.
+        if ($validator->errors()->isNotEmpty()) {
+            return;
+        }
+
+        $crewId = $request->input('crew_id');
+        $scheduledAt = $request->input('scheduled_at');
+
+        if (! $crewId || ! $scheduledAt || $request->input('status') === 'cancelled') {
+            return;
+        }
+
+        $crew = User::find($crewId);
+        $clash = $crew?->conflictingSessionOn(Carbon::parse($scheduledAt)->toDateString(), $session?->id);
+
+        if ($clash) {
+            $validator->errors()->add(
+                'crew_id',
+                $crew->name.' sudah dijadwalkan di sesi "'.$clash->project->title.'" pada '.
+                $clash->scheduled_at->format('d M Y H:i').'.',
+            );
+        }
     }
 
     /**
